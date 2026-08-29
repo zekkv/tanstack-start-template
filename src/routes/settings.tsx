@@ -10,8 +10,14 @@ import { getProtectedRouteRedirect } from "#/features/auth/session-model";
 import { getProviderLabel } from "#/features/auth/settings-model";
 import { authClient } from "#/lib/auth-client";
 import { Button } from "#/components/ui/button";
+import { createSeoHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/settings")({
+  head: () =>
+    createSeoHead({
+      title: "Settings — TanStack Start Template",
+      noindex: true,
+    }),
   beforeLoad: async () => {
     const user = await getCurrentUser();
     const redirectTo = getProtectedRouteRedirect(user);

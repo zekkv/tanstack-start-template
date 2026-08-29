@@ -40,6 +40,7 @@ This project follows a modern SSR architecture using TanStack Start and Nitro.
 │   │   ├── auth-client.ts# Better Auth React client
 │   │   ├── logger.ts     # LogTape app logger and sink config
 │   │   ├── mailer.ts     # Resend email sender (lazy init, optional)
+│   │   ├── seo.ts        # SEO metadata, OpenGraph, structured data, crawler formats
 │   │   ├── storage.ts    # S3-compatible upload client (optional)
 │   │   ├── query-client.tsx
 │   │   └── utils.ts
@@ -52,6 +53,8 @@ This project follows a modern SSR architecture using TanStack Start and Nitro.
 │   │   ├── dashboard.tsx # Protected route — notes CRUD, upload widget
 │   │   ├── settings.tsx  # Protected route — profile, providers, passkeys, delete account
 │   │   ├── sentry-example.tsx # Dev only
+│   │   ├── robots[.]txt.ts   # Plain text crawler directives
+│   │   ├── sitemap[.]xml.ts  # XML sitemap
 │   │   └── api/
 │   │       ├── auth/$.ts    # Better Auth handler
 │   │       ├── health.ts

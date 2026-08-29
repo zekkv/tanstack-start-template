@@ -8,8 +8,14 @@ import { getProtectedRouteRedirect, getSessionDisplayName } from "#/features/aut
 import { listNotes, createNote, deleteNote } from "#/features/notes/notes-fns";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
+import { createSeoHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/dashboard")({
+  head: () =>
+    createSeoHead({
+      title: "Dashboard — TanStack Start Template",
+      noindex: true,
+    }),
   beforeLoad: async () => {
     const user = await getCurrentUser();
     const redirectTo = getProtectedRouteRedirect(user);

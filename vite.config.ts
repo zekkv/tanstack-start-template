@@ -16,20 +16,34 @@ logger.warn = (msg, options) => {
 
 const config = defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
+  const isDev = mode === "development";
 
   return {
     customLogger: logger,
     resolve: { tsconfigPaths: true },
     plugins: [
-      devtools(),
-      nitro({ rollupConfig: { external: [/^@sentry\//] } }),
+      ...(isDev ? [devtools()] : []),
+      nitro({
+        rollupConfig: { external: [/^@sentry\//] },
+        routeRules: {
+          "/assets/**": {
+            headers: {
+              "cache-control": "public, max-age=31536000, immutable",
+            },
+          },
+        },
+      }),
       tailwindcss(),
       tanstackStart(),
-      sentryTanstackStart({
-        org: env.VITE_SENTRY_ORG,
-        project: env.VITE_SENTRY_PROJECT,
-        authToken: env.SENTRY_AUTH_TOKEN,
-      }),
+      ...(env.SENTRY_AUTH_TOKEN
+        ? [
+            sentryTanstackStart({
+              org: env.VITE_SENTRY_ORG,
+              project: env.VITE_SENTRY_PROJECT,
+              authToken: env.SENTRY_AUTH_TOKEN,
+            }),
+          ]
+        : []),
       viteReact(),
     ],
   };

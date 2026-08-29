@@ -35,11 +35,11 @@ export function getRouter() {
           Sentry.tanstackRouterBrowserTracingIntegration(router),
           Sentry.replayIntegration(),
         ],
-        tracesSampleRate: 1.0,
+        tracesSampleRate: 0.1,
         replaysSessionSampleRate: 0.1,
         replaysOnErrorSampleRate: 1.0,
         enableLogs: true,
-        sendDefaultPii: true,
+        sendDefaultPii: false,
       });
       globalState.__appSentryInitialized__ = true;
     }
