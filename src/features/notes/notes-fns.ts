@@ -5,46 +5,71 @@ import { z } from "zod";
 import { db } from "#/db";
 import { notes } from "#/db/schema";
 import { getCurrentUser } from "#/features/auth/session";
+import type { SessionUser } from "#/features/auth/session-model";
 import { validateNoteTitle } from "./notes-model";
+
+export async function handleListNotes(user: SessionUser | null, database = db) {
+  if (!user) throw new Error("Unauthorized");
+
+  return database
+    .select()
+    .from(notes)
+    .where(eq(notes.userId, user.id))
+    .orderBy(desc(notes.createdAt));
+}
 
 export const listNotes = createServerFn({ method: "GET" }).handler(async () => {
   const user = await getCurrentUser();
-  if (!user) throw new Error("Unauthorized");
-
-  return db.select().from(notes).where(eq(notes.userId, user.id)).orderBy(desc(notes.createdAt));
+  return handleListNotes(user);
 });
 
-const CreateNoteInput = z.object({ title: z.string() });
+export const CreateNoteInput = z.object({ title: z.string() });
+
+export async function handleCreateNote(
+  data: { title: string },
+  user: SessionUser | null,
+  database = db
+) {
+  if (!user) throw new Error("Unauthorized");
+
+  const error = validateNoteTitle(data.title);
+  if (error) throw new Error(error);
+
+  const [note] = await database
+    .insert(notes)
+    .values({ title: data.title.trim(), userId: user.id })
+    .returning();
+  return note;
+}
 
 export const createNote = createServerFn({ method: "POST" })
-  .validator((data: z.infer<typeof CreateNoteInput>) => CreateNoteInput.parse(data))
+  .validator(CreateNoteInput)
   .handler(async ({ data }) => {
     const user = await getCurrentUser();
-    if (!user) throw new Error("Unauthorized");
-
-    const error = validateNoteTitle(data.title);
-    if (error) throw new Error(error);
-
-    const [note] = await db
-      .insert(notes)
-      .values({ title: data.title.trim(), userId: user.id })
-      .returning();
-    return note;
+    return handleCreateNote(data, user);
   });
 
-const DeleteNoteInput = z.object({ id: z.number() });
+export const DeleteNoteInput = z.object({ id: z.number() });
+
+export async function handleDeleteNote(
+  data: { id: number },
+  user: SessionUser | null,
+  database = db
+) {
+  if (!user) throw new Error("Unauthorized");
+
+  const [deleted] = await database
+    .delete(notes)
+    .where(and(eq(notes.id, data.id), eq(notes.userId, user.id)))
+    .returning();
+
+  if (!deleted) throw new Error("Note not found");
+  return { success: true };
+}
 
 export const deleteNote = createServerFn({ method: "POST" })
-  .validator((data: z.infer<typeof DeleteNoteInput>) => DeleteNoteInput.parse(data))
+  .validator(DeleteNoteInput)
   .handler(async ({ data }) => {
     const user = await getCurrentUser();
-    if (!user) throw new Error("Unauthorized");
-
-    const [deleted] = await db
-      .delete(notes)
-      .where(and(eq(notes.id, data.id), eq(notes.userId, user.id)))
-      .returning();
-
-    if (!deleted) throw new Error("Note not found");
-    return { success: true };
+    return handleDeleteNote(data, user);
   });
