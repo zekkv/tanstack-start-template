@@ -11,7 +11,7 @@ import {
 import { Input } from "#/components/ui/input";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
-import { z } from "zod/v4";
+import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
 import { useEffect, useState } from "react";
 

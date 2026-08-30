@@ -1,3 +1,5 @@
+// oxlint-disable-next-line import/no-unassigned-import
+import "zod/compile";
 import { wrapFetchWithSentry } from "@sentry/tanstackstart-react";
 import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
 

@@ -1,29 +1,29 @@
 import { createEnv } from "@t3-oss/env-core";
-import { z } from "zod/v4";
+import { z } from "zod";
 
 export const env = createEnv({
   server: {
-    SERVER_URL: z.string().url().optional(),
-    DATABASE_URL: z.string().url(),
-    BETTER_AUTH_URL: z.string().url().default("http://localhost:3000"),
+    SERVER_URL: z.url().optional(),
+    DATABASE_URL: z.url(),
+    BETTER_AUTH_URL: z.url().default("http://localhost:3000"),
     BETTER_AUTH_SECRET: z.string().min(32),
     GOOGLE_CLIENT_ID: z.string().min(1).optional(),
     GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
     SENTRY_AUTH_TOKEN: z.string().optional(),
     RESEND_API_KEY: z.string().min(1).optional(),
-    EMAIL_FROM: z.string().email().optional(),
+    EMAIL_FROM: z.email().optional(),
     EMAIL_API_SECRET: z.string().min(16).optional(),
-    MINIO_ENDPOINT: z.string().url().optional(),
+    MINIO_ENDPOINT: z.url().optional(),
     MINIO_BUCKET: z.string().min(1).optional(),
     MINIO_ACCESS_KEY: z.string().min(1).optional(),
     MINIO_SECRET_KEY: z.string().min(1).optional(),
-    UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+    UPSTASH_REDIS_REST_URL: z.url().optional(),
     UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
   },
   clientPrefix: "VITE_",
   client: {
     VITE_APP_TITLE: z.string().min(1).optional(),
-    VITE_SENTRY_DSN: z.string().url().optional(),
+    VITE_SENTRY_DSN: z.url().optional(),
     VITE_SENTRY_ORG: z.string().optional(),
     VITE_SENTRY_PROJECT: z.string().optional(),
   },

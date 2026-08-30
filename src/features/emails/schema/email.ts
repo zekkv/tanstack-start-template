@@ -1,11 +1,11 @@
-import { z } from "zod/v4";
+import { z } from "zod";
 
 export const EmailSchema = z.object({
   type: z.enum(["verification", "reset-password"]),
-  to: z.string().email(),
+  to: z.email(),
   subject: z.string().min(1),
   data: z.object({
-    url: z.string().url(),
+    url: z.url(),
   }),
 });
 

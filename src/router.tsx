@@ -1,3 +1,5 @@
+// oxlint-disable-next-line import/no-unassigned-import
+import "zod/compile";
 import * as Sentry from "@sentry/tanstackstart-react";
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";

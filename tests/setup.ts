@@ -1,3 +1,6 @@
+// oxlint-disable-next-line import/no-unassigned-import
+import "zod/compile";
+
 if (typeof window !== "undefined" && !window.matchMedia) {
   window.matchMedia = (query: string) =>
     ({

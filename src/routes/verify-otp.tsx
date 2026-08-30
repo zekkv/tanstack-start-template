@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { z } from "zod/v4";
+import { z } from "zod";
 import { VerifyOtpForm } from "#/features/auth/components/verify-otp";
 import { createSeoHead } from "#/lib/seo";
 
