@@ -93,27 +93,32 @@ A production-ready template for building modern full-stack web applications with
 ## Testing
 
 ```bash
-bun run test:unit        # Vitest unit tests
+bun run test:unit        # Vitest unit tests (unit project)
+bun run test:integration # Vitest integration tests (integration project)
 bun run test:e2e         # Playwright E2E tests
 bunx playwright test --ui  # Interactive Playwright UI
 ```
 
 ## Scripts
 
-| Command                | Description                       |
-| ---------------------- | --------------------------------- |
-| `bun run dev`          | Start development server          |
-| `bun run build`        | Production build                  |
-| `bun run build:docker` | Build production Docker image     |
-| `bun run type:check`   | TypeScript check (`tsc --noEmit`) |
-| `bun run lint:check`   | Check linting with Oxlint         |
-| `bun run lint:fix`     | Fix lint warnings with Oxlint     |
-| `bun run format:check` | Check formatting with Oxfmt       |
-| `bun run format:fix`   | Fix formatting with Oxfmt         |
-| `bun run db:push`      | Push schema to local database     |
-| `bun run db:generate`  | Generate Drizzle migration files  |
-| `bun run db:studio`    | Open Drizzle Studio               |
-| `bun run clean`        | Clean build artifacts and caches  |
+| Command                    | Description                         |
+| -------------------------- | ----------------------------------- |
+| `bun run dev`              | Start development server            |
+| `bun run build`            | Production build                    |
+| `bun run build:docker`     | Build production Docker image       |
+| `bun run type:check`       | TypeScript check (`tsc --noEmit`)   |
+| `bun run lint:check`       | Check linting with Oxlint           |
+| `bun run lint:fix`         | Fix lint warnings with Oxlint       |
+| `bun run format:check`     | Check formatting with Oxfmt         |
+| `bun run format:fix`       | Fix formatting with Oxfmt           |
+| `bun run db:push`          | Push schema to local database       |
+| `bun run db:generate`      | Generate Drizzle migration files    |
+| `bun run db:studio`        | Open Drizzle Studio                 |
+| `bun run test`             | Run all Vitest projects             |
+| `bun run test:unit`        | Run Vitest unit test project        |
+| `bun run test:integration` | Run Vitest integration test project |
+| `bun run test:e2e`         | Run Playwright E2E tests            |
+| `bun run clean`            | Clean build artifacts and caches    |
 
 ## Deployment
 

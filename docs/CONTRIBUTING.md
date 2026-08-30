@@ -39,10 +39,11 @@ bun run lint:check
 bun run type:check
 bun run format:check
 bun run test:unit
+bun run test:integration
 bun run test:e2e
 ```
 
-Unit tests live in `tests/unit/`. They must not start a database container — test pure logic only. Integration and E2E tests may use Testcontainers (Postgres) or Playwright.
+Unit tests live in `tests/unit/` (run with `bun run test:unit`). They must not start a database container — test pure logic only. Integration tests live in `tests/integration/` (run with `bun run test:integration`) and may use Testcontainers (Postgres). E2E tests live in `tests/e2e/` (run with `bun run test:e2e`) and use Playwright.
 
 New features need at least one unit test covering the core behaviour. New routes need at least one Playwright smoke test verifying the happy path and any redirect guards.
 

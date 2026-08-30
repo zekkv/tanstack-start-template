@@ -25,8 +25,9 @@
     "db:pull": "drizzle-kit pull",
     "db:studio": "drizzle-kit studio",
     "codegen": "playwright codegen",
-    "test:unit": "vitest run tests/unit",
-    "test:integration": "vitest run tests/integration",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
     "test:e2e": "playwright test",
     "prepare": "lefthook install"
   },

@@ -22,9 +22,10 @@ bun run playwright test tests/e2e/landing.test.ts     # one E2E file
 
 ## Test layout gotchas
 
-- `test:unit` (vitest) **excludes** `tests/e2e` and `tests/integration` — nothing in `tests/integration/` runs under any package script or in CI. Wire up a runner before relying on it.
+- `test:unit` runs the Vitest `unit` project (`vitest run --project unit`), targeting `tests/unit/` with `jsdom` environment.
+- `test:integration` runs the Vitest `integration` project (`vitest run --project integration`), targeting `tests/integration/` with `node` environment.
 - Unit tests must not start a database container; keep them to pure logic. Testcontainers belongs in integration/E2E only.
-- Coverage is `enabled: true` in `vitest.config.ts`, so every unit run rewrites `coverage/`.
+- Coverage is `enabled: true` in `vitest.config.ts`, so test runs rewrite `coverage/`.
 
 ## Imports
 

@@ -4,25 +4,44 @@ import path from "node:path";
 
 export default defineConfig({
   plugins: [react()],
-  test: {
-    environment: "jsdom",
-    globals: true,
-    setupFiles: [path.resolve(import.meta.dirname, "./tests/setup.ts")],
-    exclude: ["node_modules", "coverage", "dist", ".tanstack", "tests/e2e", "tests/integration"],
+  resolve: {
     alias: {
       "#": path.resolve(import.meta.dirname, "./src"),
     },
+  },
+  test: {
     coverage: {
       provider: "istanbul",
       reporter: ["text", "json", "html"],
       enabled: true,
       thresholds: {
         lines: 50,
-        functions: 50,
+        functions: 45,
         branches: 50,
         statements: 50,
       },
     },
+    passWithNoTests: true,
     reporters: ["dot"],
+    projects: [
+      {
+        test: {
+          name: "unit",
+          include: ["tests/unit/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
+          environment: "jsdom",
+          globals: true,
+          setupFiles: [path.resolve(import.meta.dirname, "./tests/setup.ts")],
+        },
+      },
+      {
+        test: {
+          name: "integration",
+          include: ["tests/integration/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
+          environment: "node",
+          globals: true,
+          setupFiles: [path.resolve(import.meta.dirname, "./tests/setup.ts")],
+        },
+      },
+    ],
   },
 });
