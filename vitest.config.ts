@@ -11,7 +11,6 @@ export default defineConfig({
   },
   test: {
     coverage: {
-      provider: "istanbul",
       reporter: ["text", "json", "html"],
       enabled: true,
       thresholds: {
@@ -22,7 +21,7 @@ export default defineConfig({
       },
     },
     passWithNoTests: true,
-    reporters: ["dot"],
+    reporters: ["dot", "github-actions"],
     projects: [
       {
         test: {

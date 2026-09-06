@@ -4,6 +4,14 @@ description: Setup Bun, cache and install dependencies, and create .env file
 runs:
   using: "composite"
   steps:
+    - name: Ensure unzip is available
+      shell: bash
+      run: |
+        if ! command -v unzip &> /dev/null; then
+          if command -v apt-get &> /dev/null; then
+            apt-get update && apt-get install -y --no-install-recommends unzip
+          fi
+        fi
     - name: Setup Bun
       uses: oven-sh/setup-bun@v2
       with:
@@ -15,8 +23,13 @@ runs:
         key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
         restore-keys: |
           ${{ runner.os }}-bun-
+    - name: Configure Git safe directory
+      shell: bash
+      run: git config --global --add safe.directory '*'
     - name: Install dependencies
       shell: bash
+      env:
+        LEFTHOOK: "0"
       run: bun install --frozen-lockfile
     - name: Create .env file
       shell: bash

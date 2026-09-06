@@ -3,13 +3,15 @@ import { useTheme } from "../providers/theme-provider";
 import { cn } from "#/lib/utils";
 import { Moon, Sun } from "lucide-react";
 
+const emptySubscribe = () => () => {};
+
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = React.useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   if (!mounted) {
     return <div aria-hidden="true" className="h-8 w-[68px]" />;

@@ -22,6 +22,20 @@ if (redis) {
       if (val === null) return null;
       return typeof val === "string" ? val : JSON.stringify(val);
     },
+    getAndDelete: async (key: string) => {
+      const val = await r.get(key);
+      if (val !== null) {
+        await r.del(key);
+      }
+      return val === null ? null : typeof val === "string" ? val : JSON.stringify(val);
+    },
+    increment: async (key: string, ttl: number) => {
+      const count = await r.incr(key);
+      if (count === 1 && ttl) {
+        await r.expire(key, ttl);
+      }
+      return count;
+    },
     set: async (key: string, value: string, ttl?: number) => {
       if (ttl) {
         await r.set(key, value, { ex: ttl });
