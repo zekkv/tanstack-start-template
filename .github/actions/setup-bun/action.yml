@@ -1,0 +1,23 @@
+name: Setup Bun
+description: Setup Bun, cache and install dependencies, and create .env file
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.bun/install/cache
+        key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-bun-
+    - name: Install dependencies
+      shell: bash
+      run: bun install --frozen-lockfile
+    - name: Create .env file
+      shell: bash
+      run: cp .env.example .env
