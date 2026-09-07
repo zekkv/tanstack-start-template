@@ -1,6 +1,11 @@
 import { describe, expect, test } from "vitest";
 
-import { validateUploadRequest, createStorageClient, safeExtension } from "#/lib/storage";
+import {
+  validateUploadRequest,
+  createStorageClient,
+  createPresignedUpload,
+  safeExtension,
+} from "#/lib/storage";
 
 describe("validateUploadRequest", () => {
   test("accepts valid image mime type", () => {
@@ -66,5 +71,15 @@ describe("safeExtension", () => {
 
   test("returns bin for unknown content type", () => {
     expect(safeExtension("application/octet-stream")).toBe("bin");
+  });
+});
+
+describe("createPresignedUpload", () => {
+  test("generates presigned PUT url for key and contentType", () => {
+    const client = createStorageClient("http://localhost:9000", "admin", "password", "test-bucket");
+    expect(client).not.toBeNull();
+    if (!client) throw new Error("Client was null");
+    const result = createPresignedUpload(client, "test.png", "image/png");
+    expect(result.url).toContain("test.png");
   });
 });

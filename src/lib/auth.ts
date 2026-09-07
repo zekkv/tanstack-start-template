@@ -37,10 +37,9 @@ if (redis) {
       return count;
     },
     set: async (key: string, value: string, ttl?: number) => {
+      await r.set(key, value);
       if (ttl) {
-        await r.set(key, value, { ex: ttl });
-      } else {
-        await r.set(key, value);
+        await r.expire(key, ttl);
       }
     },
     delete: async (key: string) => {

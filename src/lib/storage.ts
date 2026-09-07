@@ -1,5 +1,4 @@
-import { S3Client } from "@aws-sdk/client-s3";
-import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
+import { S3Client } from "bun";
 
 const ALLOWED_CONTENT_TYPES = new Set([
   "image/jpeg",
@@ -44,38 +43,28 @@ export function safeExtension(contentType: string): string {
 export function createStorageClient(
   endpoint: string | undefined,
   accessKey: string | undefined,
-  secretKey: string | undefined
+  secretKey: string | undefined,
+  bucket = "app"
 ): S3Client | null {
   if (!endpoint || !accessKey || !secretKey) return null;
   return new S3Client({
     endpoint,
-    region: "us-east-1",
-    forcePathStyle: true,
-    credentials: {
-      accessKeyId: accessKey,
-      secretAccessKey: secretKey,
-    },
+    accessKeyId: accessKey,
+    secretAccessKey: secretKey,
+    bucket,
   });
 }
 
-export async function createPresignedUpload(
+export function createPresignedUpload(
   client: S3Client,
-  bucket: string,
   key: string,
   contentType: string,
-  maxBytes = MAX_BYTES,
   expiresIn = 300
-): Promise<{ url: string; fields: Record<string, string> }> {
-  return createPresignedPost(client, {
-    Bucket: bucket,
-    Key: key,
-    Conditions: [
-      ["content-length-range", 1, maxBytes],
-      ["eq", "$Content-Type", contentType],
-    ],
-    Fields: {
-      "Content-Type": contentType,
-    },
-    Expires: expiresIn,
+): { url: string } {
+  const url = client.presign(key, {
+    method: "PUT",
+    expiresIn,
+    type: contentType,
   });
+  return { url };
 }

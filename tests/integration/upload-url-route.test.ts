@@ -21,12 +21,9 @@ vi.mock("#/lib/storage", async importOriginal => {
   const original = await importOriginal<typeof storage>();
   return {
     ...original,
-    createPresignedUpload: vi
-      .fn<() => Promise<{ url: string; fields: Record<string, string> }>>()
-      .mockResolvedValue({
-        url: "https://s3.example.com/bucket",
-        fields: { key: "uploads/user_1/file.png", "Content-Type": "image/png" },
-      }),
+    createPresignedUpload: vi.fn<() => { url: string }>().mockReturnValue({
+      url: "https://s3.example.com/bucket/uploads/usr_123/file.jpg",
+    }),
   };
 });
 
@@ -143,10 +140,9 @@ describe("POST /api/upload-url", () => {
 
     const json = (await response.json()) as {
       url: string;
-      fields: Record<string, string>;
       key: string;
     };
-    expect(json.url).toBe("https://s3.example.com/bucket");
+    expect(json.url).toBe("https://s3.example.com/bucket/uploads/usr_123/file.jpg");
     expect(json.key).toMatch(/^uploads\/usr_123\/[0-9a-f-]+\.jpg$/);
   });
 

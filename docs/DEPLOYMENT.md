@@ -1,27 +1,30 @@
 # Deployment
 
-This template runs on [Nitro](https://nitro.build/), which means it can target many hosting platforms by swapping a single preset value. The Dockerfile ships a Node.js server and works as-is for any container-based platform.
+This template is **opinionated towards [Bun](https://bun.sh/)**. It builds with [Nitro](https://nitro.build/) using the `preset: "bun"` configuration and runs on Bun (`oven/bun:1-alpine`) in both development and production containers. The codebase takes full advantage of Bun-native runtime APIs (`bun:sql`, `Bun.s3`, and native Bun Redis) for zero-overhead dependencies, sub-millisecond connection handling, and lightweight container footprints.
 
 ## Changing the deployment target
 
-Set the Nitro preset in `vite.config.ts`:
+The default target is Bun. If you wish to target a different platform, set the Nitro preset in `vite.config.ts`:
 
 ```ts
 nitro({
-  preset: "cloudflare-pages", // change this
-  rollupConfig: { external: [/^@sentry\//] },
+  preset: "bun", // default
+  rollupConfig: { external: ["bun", /^bun:/, /^@sentry\//] },
 }),
 ```
 
 Or set the `NITRO_PRESET` environment variable at build time instead of editing the file.
 
+> [!NOTE]
+> **Bun-Native Portability**: Because this template is opinionated towards Bun, runtime features rely on Bun's built-in APIs (`bun:sql`, `Bun.s3`, `Bun.RedisClient`). Any container platform (Docker, AWS ECS/Fargate, GCP Cloud Run, Azure Container Apps, Railway, Fly.io, Render) runs the Bun container seamlessly. If targeting non-Bun serverless environments (such as Node-only Vercel functions or Cloudflare Workers), replace the Bun-native drivers with platform-specific alternatives (e.g. `@neondatabase/serverless` for Postgres, `@aws-sdk/client-s3` for S3, or `@upstash/redis` for Redis).
+
 ---
 
 ## Platforms
 
-### Docker / Node.js (default)
+### Docker / Bun (default)
 
-The included `Dockerfile` and `docker-compose.yaml` cover this. No preset change needed — the default Nitro output is a Node.js server on port 3000.
+The included `Dockerfile` and `docker-compose.yaml` cover this. No preset change needed — Nitro builds with `preset: "bun"` and the container runs `bun --bun .output/server/index.mjs` on port 3000.
 
 ```bash
 docker build -t my-app .
@@ -59,15 +62,16 @@ bun run build
 npx wrangler pages deploy .output/public
 ```
 
-**Edge runtime limitations** — Cloudflare Workers runs on V8, not Node.js. The following do not work without substitution:
+**Edge runtime limitations** — Cloudflare Workers runs on V8, not Bun or Node.js. The following do not work without substitution:
 
 | Component          | Issue                                      | Fix                                                                                                                             |
 | ------------------ | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| `postgres` / `pg`  | Raw TCP sockets not supported              | Use [Neon serverless driver](https://neon.tech/docs/serverless/serverless-driver) (`@neondatabase/serverless`) or Supabase REST |
-| Better Auth        | Uses `process.platform` and Node.js crypto | Not yet edge-compatible; pin to a Node.js target or use Cloudflare Workers Node.js compatibility flags (`nodejs_compat`)        |
+| `bun:sql`          | Bun-native SQL driver requires Bun runtime | Use [Neon serverless driver](https://neon.tech/docs/serverless/serverless-driver) (`@neondatabase/serverless`) or Supabase REST |
+| `Bun.s3`           | Native Bun S3 client requires Bun runtime  | Use `@aws-sdk/client-s3` or HTTP PUT fetch                                                                                      |
+| Better Auth        | Uses `process.platform` and Node.js crypto | Not yet edge-compatible; pin to a Node.js/Bun target or use Cloudflare Workers Node.js compatibility flags (`nodejs_compat`)    |
 | File system access | Not available                              | Already handled — storage uses S3 presigned URLs                                                                                |
 
-For a Cloudflare deployment with a compatible database, Neon is the simplest path: replace the `drizzle-orm/node-postgres` driver with `drizzle-orm/neon-serverless`.
+For a Cloudflare deployment with a compatible database, Neon is the simplest path: replace the `drizzle-orm/bun-sql` driver with `drizzle-orm/neon-serverless`.
 
 ---
 
@@ -137,10 +141,10 @@ Netlify also auto-detects this from the build environment. Same edge runtime lim
 
 ## Storage and email across environments
 
-**MinIO / S3**: Set `MINIO_ENDPOINT` to your S3-compatible endpoint. For AWS S3 use `https://s3.amazonaws.com`, for Cloudflare R2 use your R2 endpoint, for Supabase Storage use `https://<project>.supabase.co/storage/v1/s3`. Bucket, access key, and secret key follow the same env vars regardless of provider.
+**MinIO / S3**: Set `MINIO_ENDPOINT` to your S3-compatible endpoint. Powered by Bun's native `S3Client` (`Bun.s3`). For AWS S3 use `https://s3.amazonaws.com`, for Cloudflare R2 use your R2 endpoint, for Supabase Storage use `https://<project>.supabase.co/storage/v1/s3`. Bucket, access key, and secret key follow the same env vars regardless of provider.
 
 **Resend**: Works everywhere — it's an HTTP API. Set `RESEND_API_KEY` and `EMAIL_FROM`.
 
-**Redis**: Set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`. [Upstash](https://upstash.com/) is serverless and works on all platforms including edge. For containers, the docker-compose setup uses a local SRH proxy that mimics the Upstash API.
+**Redis**: Set `REDIS_URL` (e.g. `redis://localhost:6379`). Bun includes a high-performance native Redis client (`Bun.RedisClient`) that connects directly to Redis/Valkey instances without intermediary HTTP proxies.
 
 **Sentry**: Set `VITE_SENTRY_DSN`. The plugin only runs source map uploads at build time when `SENTRY_AUTH_TOKEN` is set; runtime error capture works from the DSN alone.

@@ -224,19 +224,16 @@ function FileUploadCard() {
       }
 
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-      const { url, fields, key } = (await res.json()) as {
+      const { url, key } = (await res.json()) as {
         url: string;
-        fields: Record<string, string>;
         key: string;
       };
 
-      const formData = new FormData();
-      for (const [k, v] of Object.entries(fields)) {
-        formData.append(k, v);
-      }
-      formData.append("file", file);
-
-      const putRes = await fetch(url, { method: "POST", body: formData });
+      const putRes = await fetch(url, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
       if (!putRes.ok) throw new Error("Upload to storage failed");
 
       setUploadedKey(key);

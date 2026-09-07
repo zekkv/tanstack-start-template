@@ -1,7 +1,5 @@
 import * as Sentry from "@sentry/tanstackstart-react";
 import { configureAppLogging } from "./src/lib/logger.ts";
-// oxlint-disable-next-line import/no-unassigned-import
-import "dotenv/config";
 
 const sentryDsn = process.env.VITE_SENTRY_DSN;
 const isDevelopment = process.env.NODE_ENV === "development";

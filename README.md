@@ -1,15 +1,15 @@
 # TanStack Start Template
 
-A production-ready template for building modern full-stack web applications with TanStack Start, Better Auth, Drizzle ORM, and a complete authenticated app loop out of the box.
+A production-ready full-stack web application template **opinionated towards [Bun](https://bun.sh/)**, built with TanStack Start, Better Auth, and Drizzle ORM. It embraces Bun-native APIs and drivers (`bun:sql`, `Bun.s3`, and native Bun Redis) for maximum runtime performance, lightning-fast startup, and zero-overhead dependencies.
 
 ## Features
 
 - **SSR & Routing**: [TanStack Start](https://tanstack.com/start) with file-based routes and type-safe navigation.
 - **Server Engine**: [Nitro](https://nitro.unjs.io/) for high-performance server-side logic.
 - **Authentication**: [Better Auth](https://better-auth.com/) — email OTP, passkeys, and optional Google OAuth. Rate limited (20 req/60 s). Session-guarded protected routes and redirect logic included.
-- **Database**: [Drizzle ORM](https://orm.drizzle.team/) with PostgreSQL. Notes CRUD example ships with the template to demonstrate the full server-function data boundary.
+- **Database**: [Drizzle ORM](https://orm.drizzle.team/) with Bun's native SQL driver (`bun:sql` / `drizzle-orm/bun-sql`) for zero-dependency, high-performance PostgreSQL access.
 - **Account management**: `/settings` route — profile, linked providers, passkeys, and account deletion via Better Auth.
-- **File uploads**: Presigned PUT upload via S3-compatible storage (MinIO locally; swap to AWS S3, Cloudflare R2, or Supabase Storage with an env var change).
+- **File uploads**: Bun-native S3 client (`Bun.s3`) generating presigned PUT upload URLs for S3-compatible storage (MinIO locally; swap to AWS S3, Cloudflare R2, or Supabase Storage with an env var change).
 - **Email**: Transactional email with [Resend](https://resend.com/) and [React Email](https://react.email/). OTP and verification templates included. Auth-guarded dispatch endpoint.
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) with a hyper-minimalist dark-first design system.
 - **Theme System**: Class-based light/dark switching via [next-themes](https://github.com/pacocoursey/next-themes).
@@ -67,28 +67,27 @@ A production-ready template for building modern full-stack web applications with
 
 ## Environment Variables
 
-| Variable                   | Required | Description                                                                                                                                              |
-| -------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`             | ✅       | PostgreSQL connection string                                                                                                                             |
-| `BETTER_AUTH_SECRET`       | ✅       | 32+ character secret for session signing                                                                                                                 |
-| `BETTER_AUTH_URL`          | ✅       | App origin (default: `http://localhost:3000`)                                                                                                            |
-| `SERVER_URL`               | Optional | Canonical public application URL                                                                                                                         |
-| `GOOGLE_CLIENT_ID`         | Optional | Enables Google OAuth when set together with secret                                                                                                       |
-| `GOOGLE_CLIENT_SECRET`     | Optional | Enables Google OAuth when set together with ID                                                                                                           |
-| `RESEND_API_KEY`           | Optional | Required to send email. App boots without it; email calls throw a clear error                                                                            |
-| `EMAIL_FROM`               | Optional | Sender address (default: `onboarding@resend.dev`)                                                                                                        |
-| `EMAIL_API_SECRET`         | Optional | 16+ char secret for server-to-server email dispatch via `x-email-secret` header                                                                          |
-| `MINIO_ENDPOINT`           | Optional | S3-compatible endpoint — enables file uploads. Accepts MinIO, AWS S3, Cloudflare R2, or Supabase Storage (`https://<project>.supabase.co/storage/v1/s3`) |
-| `MINIO_BUCKET`             | Optional | Bucket name (default: `app`)                                                                                                                             |
-| `MINIO_ACCESS_KEY`         | Optional | Storage access key (default: `admin`)                                                                                                                    |
-| `MINIO_SECRET_KEY`         | Optional | Storage secret key (default: `password`)                                                                                                                 |
-| `UPSTASH_REDIS_REST_URL`   | Optional | Enables Redis-backed session cache for multi-instance deployments (Upstash or local SRH proxy)                                                           |
-| `UPSTASH_REDIS_REST_TOKEN` | Optional | Upstash Redis REST API token                                                                                                                             |
-| `SENTRY_AUTH_TOKEN`        | Optional | Auth token for Sentry source map uploads at build time                                                                                                   |
-| `VITE_APP_TITLE`           | Optional | Application title displayed in UI branding                                                                                                               |
-| `VITE_SENTRY_DSN`          | Optional | Enables Sentry error tracking                                                                                                                            |
-| `VITE_SENTRY_ORG`          | Optional | Sentry organization slug                                                                                                                                 |
-| `VITE_SENTRY_PROJECT`      | Optional | Sentry project slug                                                                                                                                      |
+| Variable               | Required | Description                                                                                                                                              |
+| ---------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`         | ✅       | PostgreSQL connection string                                                                                                                             |
+| `BETTER_AUTH_SECRET`   | ✅       | 32+ character secret for session signing                                                                                                                 |
+| `BETTER_AUTH_URL`      | ✅       | App origin (default: `http://localhost:3000`)                                                                                                            |
+| `SERVER_URL`           | Optional | Canonical public application URL                                                                                                                         |
+| `GOOGLE_CLIENT_ID`     | Optional | Enables Google OAuth when set together with secret                                                                                                       |
+| `GOOGLE_CLIENT_SECRET` | Optional | Enables Google OAuth when set together with ID                                                                                                           |
+| `RESEND_API_KEY`       | Optional | Required to send email. App boots without it; email calls throw a clear error                                                                            |
+| `EMAIL_FROM`           | Optional | Sender address (default: `onboarding@resend.dev`)                                                                                                        |
+| `EMAIL_API_SECRET`     | Optional | 16+ char secret for server-to-server email dispatch via `x-email-secret` header                                                                          |
+| `MINIO_ENDPOINT`       | Optional | S3-compatible endpoint — enables file uploads. Accepts MinIO, AWS S3, Cloudflare R2, or Supabase Storage (`https://<project>.supabase.co/storage/v1/s3`) |
+| `MINIO_BUCKET`         | Optional | Bucket name (default: `app`)                                                                                                                             |
+| `MINIO_ACCESS_KEY`     | Optional | Storage access key (default: `admin`)                                                                                                                    |
+| `MINIO_SECRET_KEY`     | Optional | Storage secret key (default: `password`)                                                                                                                 |
+| `REDIS_URL`            | Optional | Redis connection string (`redis://localhost:6379`) — enables Bun native Redis session cache for multi-instance deployments                               |
+| `SENTRY_AUTH_TOKEN`    | Optional | Auth token for Sentry source map uploads at build time                                                                                                   |
+| `VITE_APP_TITLE`       | Optional | Application title displayed in UI branding                                                                                                               |
+| `VITE_SENTRY_DSN`      | Optional | Enables Sentry error tracking                                                                                                                            |
+| `VITE_SENTRY_ORG`      | Optional | Sentry organization slug                                                                                                                                 |
+| `VITE_SENTRY_PROJECT`  | Optional | Sentry project slug                                                                                                                                      |
 
 ## Testing
 

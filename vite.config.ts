@@ -21,10 +21,22 @@ const config = defineConfig(({ mode }) => {
   return {
     customLogger: logger,
     resolve: { tsconfigPaths: true },
+    optimizeDeps: {
+      exclude: ["bun"],
+    },
+    ssr: {
+      external: ["bun"],
+    },
+    build: {
+      rolldownOptions: {
+        external: ["bun", /^bun:/],
+      },
+    },
     plugins: [
       ...(isDev ? [devtools()] : []),
       nitro({
-        rollupConfig: { external: [/^@sentry\//] },
+        preset: "bun",
+        rollupConfig: { external: [/^@sentry\//, "bun", /^bun:/] },
         routeRules: {
           "/assets/**": {
             headers: {
@@ -35,7 +47,7 @@ const config = defineConfig(({ mode }) => {
       }),
       tailwindcss(),
       tanstackStart(),
-      ...(env.SENTRY_AUTH_TOKEN
+      ...(env.SENTRY_AUTH_TOKEN && env.SENTRY_AUTH_TOKEN !== "your-sentry-auth-token"
         ? [
             sentryTanstackStart({
               org: env.VITE_SENTRY_ORG,

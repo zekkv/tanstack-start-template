@@ -1,12 +1,12 @@
 # Architecture
 
-This project follows a modern SSR architecture using TanStack Start and Nitro.
+This project is opinionated towards [Bun](https://bun.sh/) and follows a modern SSR architecture using TanStack Start and Nitro.
 
 ## Core Stack
 
 - **Framework**: [TanStack Start](https://tanstack.com/start) — full-stack React with TanStack Router, server functions, and SSR.
 - **Server**: [Nitro](https://nitro.unjs.io/) — handles server-side logic and deployment presets.
-- **ORM**: [Drizzle ORM](https://orm.drizzle.team/) — type-safe PostgreSQL access.
+- **ORM & Database**: [Drizzle ORM](https://orm.drizzle.team/) with Bun's native SQL driver (`bun:sql` / `drizzle-orm/bun-sql`) — high-performance, zero-dependency PostgreSQL access.
 - **Auth**: [Better Auth](https://better-auth.com/) — email OTP, passkeys, and optional Google OAuth. Rate limited at the Better Auth layer (20 req/60 s).
 - **Theme**: [next-themes](https://github.com/pacocoursey/next-themes) — class-based theme management on `html` with a mounted client toggle.
 
@@ -40,8 +40,9 @@ This project follows a modern SSR architecture using TanStack Start and Nitro.
 │   │   ├── auth-client.ts# Better Auth React client
 │   │   ├── logger.ts     # LogTape app logger and sink config
 │   │   ├── mailer.ts     # Resend email sender (lazy init, optional)
+│   │   ├── redis.ts      # Bun-native Redis client (optional)
 │   │   ├── seo.ts        # SEO metadata, OpenGraph, structured data, crawler formats
-│   │   ├── storage.ts    # S3-compatible upload client (optional)
+│   │   ├── storage.ts    # Bun-native S3-compatible upload client (optional)
 │   │   ├── query-client.tsx
 │   │   └── utils.ts
 │   ├── routes/           # TanStack Router routes and API handlers

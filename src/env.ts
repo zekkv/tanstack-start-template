@@ -17,8 +17,7 @@ export const env = createEnv({
     MINIO_BUCKET: z.string().min(1).optional(),
     MINIO_ACCESS_KEY: z.string().min(1).optional(),
     MINIO_SECRET_KEY: z.string().min(1).optional(),
-    UPSTASH_REDIS_REST_URL: z.url().optional(),
-    UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+    REDIS_URL: z.string().optional(),
   },
   clientPrefix: "VITE_",
   client: {
@@ -42,8 +41,7 @@ export const env = createEnv({
     MINIO_BUCKET: process.env.MINIO_BUCKET,
     MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY,
     MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY,
-    UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
-    UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+    REDIS_URL: process.env.REDIS_URL,
     // import.meta.env is Vite-only; fallback to process.env in Node.js (e.g. drizzle-kit, instrument.server.mjs)
     VITE_APP_TITLE: process.env.VITE_APP_TITLE ?? import.meta.env?.VITE_APP_TITLE,
     VITE_SENTRY_DSN: process.env.VITE_SENTRY_DSN ?? import.meta.env?.VITE_SENTRY_DSN,

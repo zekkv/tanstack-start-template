@@ -16,6 +16,15 @@ runs:
       uses: oven-sh/setup-bun@v2
       with:
         bun-version: latest
+    - name: Ensure Bun is in /usr/local/bin
+      shell: bash
+      run: |
+        if command -v bun &> /dev/null; then
+          BUN_PATH=$(command -v bun)
+          if [ "$BUN_PATH" != "/usr/local/bin/bun" ] && [ -w /usr/local/bin ]; then
+            ln -sf "$BUN_PATH" /usr/local/bin/bun || true
+          fi
+        fi
     - name: Cache dependencies
       uses: actions/cache@v4
       with:

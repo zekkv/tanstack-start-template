@@ -7,12 +7,14 @@ export default defineConfig({
   resolve: {
     alias: {
       "#": path.resolve(import.meta.dirname, "./src"),
+      bun: path.resolve(import.meta.dirname, "./tests/shims/bun.ts"),
     },
   },
   test: {
     coverage: {
       reporter: ["text", "json", "html"],
       enabled: true,
+      exclude: ["tests/**"],
       thresholds: {
         lines: 50,
         functions: 45,
@@ -22,6 +24,11 @@ export default defineConfig({
     },
     passWithNoTests: true,
     reporters: ["dot", "github-actions"],
+    server: {
+      deps: {
+        inline: ["drizzle-orm"],
+      },
+    },
     projects: [
       {
         test: {

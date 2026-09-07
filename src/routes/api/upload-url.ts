@@ -40,10 +40,12 @@ export const Route = createFileRoute("/api/upload-url")({
           return Response.json({ error: validationError }, { status: 422 });
         }
 
+        const bucket = env.MINIO_BUCKET ?? "app";
         const client = createStorageClient(
           env.MINIO_ENDPOINT,
           env.MINIO_ACCESS_KEY,
-          env.MINIO_SECRET_KEY
+          env.MINIO_SECRET_KEY,
+          bucket
         );
 
         if (!client) {
@@ -53,11 +55,10 @@ export const Route = createFileRoute("/api/upload-url")({
           );
         }
 
-        const bucket = env.MINIO_BUCKET ?? "app";
         const ext = safeExtension(contentType);
         const key = `uploads/${session.user.id}/${crypto.randomUUID()}.${ext}`;
 
-        const { url, fields } = await createPresignedUpload(client, bucket, key, contentType);
+        const { url } = createPresignedUpload(client, key, contentType);
 
         logger.info("Generated presigned upload URL", {
           userId: session.user.id,
@@ -65,7 +66,7 @@ export const Route = createFileRoute("/api/upload-url")({
           contentType,
         });
 
-        return Response.json({ url, fields, key });
+        return Response.json({ url, key });
       },
     },
   },
