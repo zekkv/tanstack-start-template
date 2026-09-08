@@ -27,11 +27,6 @@ const config = defineConfig(({ mode }) => {
     ssr: {
       external: ["bun"],
     },
-    build: {
-      rolldownOptions: {
-        external: ["bun", /^bun:/],
-      },
-    },
     plugins: [
       ...(isDev ? [devtools()] : []),
       nitro({

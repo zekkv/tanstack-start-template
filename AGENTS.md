@@ -29,8 +29,9 @@ bun run playwright test tests/e2e/landing.test.ts     # one E2E file
 
 ## File naming inside `src/features/`
 
-- A module that **statically** imports a server-only dependency (`#/db`) is named `<feature>/server-fns.ts`: the directory names the feature, the filename names the role. Exercise it from `tests/integration/`, per the pure-logic rule for unit tests above.
-- A module that reaches its server dependencies through `await import()` inside the handler keeps a plain name and stays importable from routes and unit tests. `src/features/auth/session.ts` is the example — it exports a `createServerFn` but is not a `server-fns.ts`, because nothing server-only is in its static import graph.
+- Server functions exported via `createServerFn` and consumed by routes are compiled for the client environment. TanStack Start strips `.handler(...)` bodies but preserves all other `export` declarations.
+- Never statically import runtime built-ins or server-only dependencies (`#/db`, `"bun"`) at module level if any exported helper references them (e.g. via default parameters like `database = db`). This anchors the dependency in the AST and prevents Dead Code Elimination, leaking server built-ins into client bundles.
+- Instead, reach server dependencies dynamically inside `.handler()` via `await import("#/db")`, import server types with `import type`, and require injected dependencies in exported helpers (e.g. `database: Database`).
 - Do **not** name either kind `<feature>.server.ts`. `@tanstack/start-plugin-core`'s import-protection plugin denies `**/*.server.*` in the client environment, so the first route that imports it fails `bun run build` — and only `build`, not `type:check` and not the test suites. That suffix is only for modules nothing client-reachable imports.
 - No `-model` suffix, and no entity-name stutter (`notes/notes-fns.ts`). A helper with exactly one caller lives in that caller's file; extract it when a second caller appears, or when it has a branch worth unit-testing.
 - Server-function validation lives in the Zod schema, parsed with `safeParse` rethrowing `issues[0].message` — never let a raw `ZodError` reach a route.
