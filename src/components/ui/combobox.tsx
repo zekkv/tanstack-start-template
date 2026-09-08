@@ -1,9 +1,7 @@
-"use client";
-
 import * as React from "react";
 import { Combobox as ComboboxPrimitive } from "@base-ui/react";
+import { cn } from "cn";
 
-import { cn } from "#/lib/utils.ts";
 import { Button } from "#/components/ui/button.tsx";
 import {
   InputGroup,
@@ -64,13 +62,11 @@ function ComboboxInput({
           <InputGroupButton
             size="icon-xs"
             variant="ghost"
-            asChild
+            render={<ComboboxTrigger />}
             data-slot="input-group-button"
             className="group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent"
             disabled={disabled}
-          >
-            <ComboboxTrigger />
-          </InputGroupButton>
+          />
         )}
         {showClear && <ComboboxClear disabled={disabled} />}
       </InputGroupAddon>

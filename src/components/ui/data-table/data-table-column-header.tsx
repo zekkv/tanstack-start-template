@@ -36,21 +36,23 @@ export function DataTableColumnHeader<TData extends RowData, TValue>({
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-3 h-8 data-[state=open]:bg-accent text-xs font-medium"
-          >
-            <span>{title}</span>
-            {isSorted === "desc" ? (
-              <ArrowDown className="ml-2 size-3.5" />
-            ) : isSorted === "asc" ? (
-              <ArrowUp className="ml-2 size-3.5" />
-            ) : (
-              <ChevronsUpDown className="ml-2 size-3.5 opacity-50" />
-            )}
-          </Button>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="sm"
+              className="-ml-3 h-8 data-[state=open]:bg-accent text-xs font-medium"
+            />
+          }
+        >
+          <span>{title}</span>
+          {isSorted === "desc" ? (
+            <ArrowDown className="ml-2 size-3.5" />
+          ) : isSorted === "asc" ? (
+            <ArrowUp className="ml-2 size-3.5" />
+          ) : (
+            <ChevronsUpDown className="ml-2 size-3.5 opacity-50" />
+          )}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem onClick={() => column.toggleSorting(false)}>

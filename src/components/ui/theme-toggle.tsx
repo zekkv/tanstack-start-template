@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useTheme } from "../providers/theme-provider";
-import { cn } from "#/lib/utils";
+import { cn } from "cn";
 import { Moon, Sun } from "lucide-react";
 
 const emptySubscribe = () => () => {};
