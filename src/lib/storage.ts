@@ -1,17 +1,8 @@
+// oxlint-disable node/no-process-env
 import { S3Client } from "bun";
 
-const ALLOWED_CONTENT_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-  "image/svg+xml",
-  "application/pdf",
-  "text/plain",
-]);
-
 /** Map validated content types to safe file extensions, preventing extension spoofing. */
-const CONTENT_TYPE_EXTENSIONS: Record<string, string> = {
+export const CONTENT_TYPE_EXTENSIONS: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/gif": "gif",
@@ -30,7 +21,7 @@ export interface UploadRequest {
 }
 
 export function validateUploadRequest(req: UploadRequest): string | null {
-  if (!ALLOWED_CONTENT_TYPES.has(req.contentType)) return "Unsupported file type";
+  if (!CONTENT_TYPE_EXTENSIONS[req.contentType]) return "Unsupported file type";
   if (req.size > MAX_BYTES) return "File must be 10 MB or smaller";
   return null;
 }
@@ -55,16 +46,18 @@ export function createStorageClient(
   });
 }
 
-export function createPresignedUpload(
-  client: S3Client,
-  key: string,
-  contentType: string,
-  expiresIn = 300
-): { url: string } {
-  const url = client.presign(key, {
-    method: "PUT",
-    expiresIn,
-    type: contentType,
-  });
-  return { url };
+let cachedKey: string | undefined;
+let cachedStorageClient: S3Client | null | undefined;
+
+export function getStorageClient(
+  endpoint = process.env.MINIO_ENDPOINT,
+  accessKey = process.env.MINIO_ACCESS_KEY,
+  secretKey = process.env.MINIO_SECRET_KEY,
+  bucket = process.env.MINIO_BUCKET ?? "app"
+): S3Client | null {
+  const key = `${endpoint}:${accessKey}:${secretKey}:${bucket}`;
+  if (cachedStorageClient !== undefined && cachedKey === key) return cachedStorageClient;
+  cachedKey = key;
+  cachedStorageClient = createStorageClient(endpoint, accessKey, secretKey, bucket);
+  return cachedStorageClient;
 }

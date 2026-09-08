@@ -8,8 +8,20 @@ export function createMailer(apiKey: string | undefined): Resend | null {
   return new Resend(apiKey);
 }
 
+let cachedApiKey: string | undefined;
+let cachedMailer: Resend | null = null;
+
+export function getMailer(): Resend | null {
+  if (cachedMailer && cachedApiKey === env.RESEND_API_KEY) {
+    return cachedMailer;
+  }
+  cachedApiKey = env.RESEND_API_KEY;
+  cachedMailer = createMailer(env.RESEND_API_KEY);
+  return cachedMailer;
+}
+
 export async function sendEmail(to: string, subject: string, react: React.ReactElement) {
-  const client = createMailer(env.RESEND_API_KEY);
+  const client = getMailer();
 
   if (!client) {
     throw new Error(

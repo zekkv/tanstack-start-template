@@ -2,12 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { env } from "#/env";
 import { auth } from "#/lib/auth";
-import {
-  createStorageClient,
-  createPresignedUpload,
-  validateUploadRequest,
-  safeExtension,
-} from "#/lib/storage";
+import { getStorageClient, validateUploadRequest, safeExtension } from "#/lib/storage";
 import { logger } from "#/lib/logger";
 import { getRequest } from "@tanstack/react-start/server";
 
@@ -40,12 +35,11 @@ export const Route = createFileRoute("/api/upload-url")({
           return Response.json({ error: validationError }, { status: 422 });
         }
 
-        const bucket = env.MINIO_BUCKET ?? "app";
-        const client = createStorageClient(
+        const client = getStorageClient(
           env.MINIO_ENDPOINT,
           env.MINIO_ACCESS_KEY,
           env.MINIO_SECRET_KEY,
-          bucket
+          env.MINIO_BUCKET
         );
 
         if (!client) {
@@ -58,7 +52,11 @@ export const Route = createFileRoute("/api/upload-url")({
         const ext = safeExtension(contentType);
         const key = `uploads/${session.user.id}/${crypto.randomUUID()}.${ext}`;
 
-        const { url } = createPresignedUpload(client, key, contentType);
+        const url = client.presign(key, {
+          method: "PUT",
+          expiresIn: 300,
+          type: contentType,
+        });
 
         logger.info("Generated presigned upload URL", {
           userId: session.user.id,

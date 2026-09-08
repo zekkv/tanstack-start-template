@@ -13,42 +13,6 @@ import { OtpEmail } from "#/features/emails/components/otp-email";
 import { ResetPasswordEmail } from "#/features/emails/components/reset-password-email";
 import { VerificationEmail } from "#/features/emails/components/verification-email";
 import { logger } from "#/lib/logger";
-import { redis } from "#/lib/redis";
-
-let secondaryStorage: Parameters<typeof betterAuth>[0]["secondaryStorage"];
-if (redis) {
-  const r = redis;
-  secondaryStorage = {
-    get: async (key: string) => {
-      const val = await r.get(key);
-      if (val === null) return null;
-      return typeof val === "string" ? val : JSON.stringify(val);
-    },
-    getAndDelete: async (key: string) => {
-      const val = await r.get(key);
-      if (val !== null) {
-        await r.del(key);
-      }
-      return val === null ? null : typeof val === "string" ? val : JSON.stringify(val);
-    },
-    increment: async (key: string, ttl: number) => {
-      const count = await r.incr(key);
-      if (count === 1 && ttl) {
-        await r.expire(key, ttl);
-      }
-      return count;
-    },
-    set: async (key: string, value: string, ttl?: number) => {
-      await r.set(key, value);
-      if (ttl) {
-        await r.expire(key, ttl);
-      }
-    },
-    delete: async (key: string) => {
-      await r.del(key);
-    },
-  };
-}
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -57,7 +21,6 @@ export const auth = betterAuth({
   }),
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
-  ...(secondaryStorage ? { secondaryStorage } : {}),
 
   // Password sign-ups start unverified, and an email-OTP sign-in by an unverified user makes
   // Better Auth revoke every account it holds (its account-takeover defence) — which would drop
@@ -118,7 +81,7 @@ export const auth = betterAuth({
   rateLimit: {
     window: 60,
     max: 20,
-    storage: secondaryStorage ? "secondary-storage" : "memory",
+    storage: "memory",
   },
 
   plugins: [

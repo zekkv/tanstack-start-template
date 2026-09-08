@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
+import { createFileRoute, redirect, useRouter, Link } from "@tanstack/react-router";
 import { Trash2, Plus, Upload, CheckCircle } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
@@ -180,12 +180,12 @@ function DashboardPage() {
         <FileUploadCard />
 
         <div className="mt-12 border-t border-border pt-6">
-          <a
-            href="/settings"
+          <Link
+            to="/settings"
             className="text-sm font-medium underline decoration-border underline-offset-4 hover:decoration-foreground"
           >
             Account settings
-          </a>
+          </Link>
         </div>
       </section>
     </main>

@@ -21,9 +21,6 @@ vi.mock("#/lib/storage", async importOriginal => {
   const original = await importOriginal<typeof storage>();
   return {
     ...original,
-    createPresignedUpload: vi.fn<() => { url: string }>().mockReturnValue({
-      url: "https://s3.example.com/bucket/uploads/usr_123/file.jpg",
-    }),
   };
 });
 
@@ -142,7 +139,7 @@ describe("POST /api/upload-url", () => {
       url: string;
       key: string;
     };
-    expect(json.url).toBe("https://s3.example.com/bucket/uploads/usr_123/file.jpg");
+    expect(json.url).toContain("uploads/usr_123/");
     expect(json.key).toMatch(/^uploads\/usr_123\/[0-9a-f-]+\.jpg$/);
   });
 
@@ -152,7 +149,7 @@ describe("POST /api/upload-url", () => {
       session: { id: "sess_123" },
     } as never);
 
-    vi.spyOn(storage, "createStorageClient").mockReturnValueOnce(null);
+    vi.spyOn(storage, "getStorageClient").mockReturnValueOnce(null);
 
     currentRequest = new Request("http://localhost:3000/api/upload-url", {
       method: "POST",

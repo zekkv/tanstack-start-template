@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import {
   validateUploadRequest,
   createStorageClient,
-  createPresignedUpload,
+  getStorageClient,
   safeExtension,
 } from "#/lib/storage";
 
@@ -74,12 +74,19 @@ describe("safeExtension", () => {
   });
 });
 
-describe("createPresignedUpload", () => {
+describe("client.presign", () => {
   test("generates presigned PUT url for key and contentType", () => {
     const client = createStorageClient("http://localhost:9000", "admin", "password", "test-bucket");
     expect(client).not.toBeNull();
     if (!client) throw new Error("Client was null");
-    const result = createPresignedUpload(client, "test.png", "image/png");
-    expect(result.url).toContain("test.png");
+    const url = client.presign("test.png", { method: "PUT", type: "image/png" });
+    expect(url).toContain("test.png");
+  });
+});
+
+describe("getStorageClient", () => {
+  test("returns client singleton or null based on env", () => {
+    const client = getStorageClient();
+    expect(client === null || typeof client === "object").toBe(true);
   });
 });

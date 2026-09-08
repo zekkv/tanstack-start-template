@@ -4,13 +4,15 @@ import * as Sentry from "@sentry/tanstackstart-react";
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
 
+import { QueryClient } from "@tanstack/react-query";
+
 import { configureAppLogging } from "./lib/logger";
-import { getContext } from "./lib/query-client";
 import { routeTree } from "./routeTree.gen";
 import { env } from "./env";
 
 export function getRouter() {
-  const context = getContext();
+  const queryClient = new QueryClient();
+  const context = { queryClient };
 
   const router = createTanStackRouter({
     routeTree,
