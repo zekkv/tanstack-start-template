@@ -33,7 +33,7 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 │   │   └── auth-schema.ts# Better Auth tables
 │   ├── features/
 │   │   ├── auth/         # Session helpers and server fn, login/signup/OTP/reset forms
-│   │   ├── emails/       # Email templates, schema, send guard
+│   │   ├── emails/       # Email templates
 │   │   └── notes/        # Notes server functions
 │   ├── lib/              # Shared integrations and utilities
 │   │   ├── auth.ts       # Better Auth server config

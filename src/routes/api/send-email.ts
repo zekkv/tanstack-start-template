@@ -4,10 +4,30 @@ import * as React from "react";
 import { sendEmail } from "#/lib/mailer";
 import { VerificationEmail } from "#/features/emails/components/verification-email";
 import { ResetPasswordEmail } from "#/features/emails/components/reset-password-email";
-import { EmailSchema } from "#/features/emails/schema/email";
-import { canSendEmail } from "#/features/emails/email-guard";
+import { z } from "zod";
 import { env } from "#/env";
 import { logger } from "#/lib/logger";
+
+export const EmailSchema = z.object({
+  type: z.enum(["verification", "reset-password"]),
+  to: z.email(),
+  subject: z.string().min(1),
+  data: z.object({
+    url: z.url(),
+  }),
+});
+
+export type EmailRequest = z.infer<typeof EmailSchema>;
+
+export interface CanSendEmailOptions {
+  serverSecret?: string;
+  configuredSecret?: string;
+}
+
+export function canSendEmail({ serverSecret, configuredSecret }: CanSendEmailOptions): boolean {
+  if (!serverSecret || !configuredSecret) return false;
+  return serverSecret === configuredSecret;
+}
 
 export const Route = createFileRoute("/api/send-email")({
   server: {

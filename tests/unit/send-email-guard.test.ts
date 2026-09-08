@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { canSendEmail } from "#/features/emails/email-guard";
+import { canSendEmail } from "#/routes/api/send-email";
 
 describe("canSendEmail", () => {
   test("allows request with valid server secret", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { z } from "zod";
-import { EmailSchema } from "#/features/emails/schema/email";
+import { EmailSchema } from "#/routes/api/send-email";
 
 describe("EmailSchema", () => {
   test("accepts valid verification email payload", () => {
