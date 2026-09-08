@@ -46,6 +46,7 @@ export default defineConfig({
           environment: "node",
           globals: true,
           setupFiles: [path.resolve(import.meta.dirname, "./tests/setup.ts")],
+          globalSetup: "./tests/integration/integration-setup.ts",
         },
       },
     ],

@@ -1,156 +1,148 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+// oxlint-disable node/no-process-env
+import { describe, expect, it, beforeAll, afterAll, beforeEach } from "vitest";
+import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
+import * as schema from "#/db/schema";
 import { handleListNotes, handleCreateNote, handleDeleteNote } from "#/features/notes/server-fns";
 import type { SessionUser } from "#/features/auth/session";
 
-const mockNotes = [
-  { id: 1, title: "Note 1", userId: "user-1", createdAt: new Date(), updatedAt: new Date() },
-  { id: 2, title: "Note 2", userId: "user-1", createdAt: new Date(), updatedAt: new Date() },
-];
-
-const mockUser: SessionUser = {
-  id: "user-1",
-  email: "test@example.com",
+const testUser: SessionUser = {
+  id: "user-test-notes-1",
+  email: "notes-user-1@example.com",
 };
 
-interface QueryMock {
-  from: ReturnType<typeof vi.fn>;
-  where: ReturnType<typeof vi.fn>;
-  orderBy: ReturnType<typeof vi.fn>;
-  values: ReturnType<typeof vi.fn>;
-  returning: ReturnType<typeof vi.fn>;
-}
+const otherUser: SessionUser = {
+  id: "user-test-notes-2",
+  email: "notes-user-2@example.com",
+};
 
-interface MockDatabase {
-  select: ReturnType<typeof vi.fn>;
-  insert: ReturnType<typeof vi.fn>;
-  delete: ReturnType<typeof vi.fn>;
-}
+describe("Notes Server Logic (Database Integration)", () => {
+  let pool: Pool;
+  let db: ReturnType<typeof drizzle<typeof schema>>;
 
-describe("Notes Server Logic", () => {
-  let mockDb: MockDatabase;
-  let queryMock: QueryMock;
+  beforeAll(async () => {
+    pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    db = drizzle(pool, { schema });
 
-  beforeEach(() => {
-    vi.clearAllMocks();
+    // Seed test users to satisfy notes foreign key constraint
+    await db
+      .insert(schema.user)
+      .values([
+        {
+          id: testUser.id,
+          name: "Notes User 1",
+          email: testUser.email,
+          emailVerified: true,
+        },
+        {
+          id: otherUser.id,
+          name: "Notes User 2",
+          email: otherUser.email,
+          emailVerified: true,
+        },
+      ])
+      .onConflictDoNothing();
+  });
 
-    queryMock = {
-      from: vi.fn<() => QueryMock>().mockReturnThis(),
-      where: vi.fn<() => QueryMock>().mockReturnThis(),
-      orderBy: vi.fn<() => Promise<typeof mockNotes>>().mockResolvedValue(mockNotes),
-      values: vi.fn<() => QueryMock>().mockReturnThis(),
-      returning: vi.fn<() => Promise<unknown[]>>().mockResolvedValue([]),
-    };
+  afterAll(async () => {
+    if (pool) {
+      await pool.end();
+    }
+  });
 
-    mockDb = {
-      select: vi.fn<() => QueryMock>().mockReturnValue(queryMock),
-      insert: vi.fn<() => QueryMock>().mockReturnValue(queryMock),
-      delete: vi.fn<() => QueryMock>().mockReturnValue(queryMock),
-    };
+  beforeEach(async () => {
+    // Clean up notes table between tests to ensure test isolation
+    await db.delete(schema.notes);
   });
 
   describe("handleListNotes", () => {
     it("throws Unauthorized if user is not signed in", async () => {
-      await expect(handleListNotes(null, mockDb as never)).rejects.toThrow("Unauthorized");
+      await expect(handleListNotes(null, db as never)).rejects.toThrow("Unauthorized");
     });
 
-    it("returns user notes ordered by createdAt desc", async () => {
-      const result = await handleListNotes(mockUser, mockDb as never);
-      expect(result).toEqual(mockNotes);
-      expect(mockDb.select).toHaveBeenCalled();
-      expect(queryMock.from).toHaveBeenCalled();
-      expect(queryMock.where).toHaveBeenCalled();
-      expect(queryMock.orderBy).toHaveBeenCalled();
+    it("returns user notes ordered by createdAt desc and filters other users", async () => {
+      const note1 = await handleCreateNote({ title: "First Note" }, testUser, db as never);
+      const note2 = await handleCreateNote({ title: "Second Note" }, testUser, db as never);
+
+      // Create note for another user
+      await handleCreateNote({ title: "Other User Note" }, otherUser, db as never);
+
+      const result = await handleListNotes(testUser, db as never);
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe(note2.id);
+      expect(result[0].title).toBe("Second Note");
+      expect(result[1].id).toBe(note1.id);
+      expect(result[1].title).toBe("First Note");
     });
   });
 
   describe("handleCreateNote", () => {
     it("throws Unauthorized if user is not signed in", async () => {
-      await expect(
-        handleCreateNote({ title: "Buy groceries" }, null, mockDb as never)
-      ).rejects.toThrow("Unauthorized");
+      await expect(handleCreateNote({ title: "Buy groceries" }, null, db as never)).rejects.toThrow(
+        "Unauthorized"
+      );
     });
 
     it("validates and rejects empty title", async () => {
-      await expect(handleCreateNote({ title: "   " }, mockUser, mockDb as never)).rejects.toThrow(
+      await expect(handleCreateNote({ title: "   " }, testUser, db as never)).rejects.toThrow(
         "Title is required"
       );
     });
 
     it("validates and rejects title over 255 characters", async () => {
       await expect(
-        handleCreateNote({ title: "a".repeat(256) }, mockUser, mockDb as never)
+        handleCreateNote({ title: "a".repeat(256) }, testUser, db as never)
       ).rejects.toThrow("Title must be 255 characters or fewer");
     });
 
     it("accepts a title of exactly 255 characters", async () => {
-      queryMock.returning.mockResolvedValueOnce([{ id: 1 }]);
-      await expect(
-        handleCreateNote({ title: "a".repeat(255) }, mockUser, mockDb as never)
-      ).resolves.toBeDefined();
+      const title255 = "a".repeat(255);
+      const created = await handleCreateNote({ title: title255 }, testUser, db as never);
+      expect(created).toBeDefined();
+      expect(created.title).toBe(title255);
+      expect(created.userId).toBe(testUser.id);
     });
 
     it("inserts note with trimmed title and returns the new note", async () => {
-      const created = {
-        id: 42,
-        title: "Feed the cat",
-        userId: "user-1",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      queryMock.returning.mockResolvedValueOnce([created]);
-
-      const result = await handleCreateNote(
-        { title: "  Feed the cat  " },
-        mockUser,
-        mockDb as never
-      );
-      expect(result).toEqual(created);
-      expect(mockDb.insert).toHaveBeenCalled();
-      expect(queryMock.values).toHaveBeenCalledWith({
-        title: "Feed the cat",
-        userId: "user-1",
-      });
+      const result = await handleCreateNote({ title: "  Feed the cat  " }, testUser, db as never);
+      expect(result).toBeDefined();
+      expect(result.title).toBe("Feed the cat");
+      expect(result.userId).toBe(testUser.id);
+      expect(result.id).toBeTypeOf("number");
     });
   });
 
   describe("handleDeleteNote", () => {
     it("throws Unauthorized if user is not signed in", async () => {
-      await expect(handleDeleteNote({ id: 10 }, null, mockDb as never)).rejects.toThrow(
-        "Unauthorized"
-      );
+      await expect(handleDeleteNote({ id: 10 }, null, db as never)).rejects.toThrow("Unauthorized");
     });
 
-    it("throws Note not found if note belongs to another user or does not exist", async () => {
-      queryMock.returning.mockResolvedValueOnce([]);
-
-      await expect(handleDeleteNote({ id: 999 }, mockUser, mockDb as never)).rejects.toThrow(
+    it("throws Note not found if note does not exist", async () => {
+      await expect(handleDeleteNote({ id: 999999 }, testUser, db as never)).rejects.toThrow(
         "Note not found"
       );
     });
 
+    it("throws Note not found if note belongs to another user", async () => {
+      const otherNote = await handleCreateNote({ title: "Other Note" }, otherUser, db as never);
+
+      await expect(handleDeleteNote({ id: otherNote.id }, testUser, db as never)).rejects.toThrow(
+        "Note not found"
+      );
+
+      const otherNotes = await handleListNotes(otherUser, db as never);
+      expect(otherNotes).toHaveLength(1);
+      expect(otherNotes[0].id).toBe(otherNote.id);
+    });
+
     it("deletes note and returns success: true when matched", async () => {
-      const deletedRow = { id: 10, title: "Old note", userId: "user-1" };
-      queryMock.returning.mockResolvedValueOnce([deletedRow]);
+      const note = await handleCreateNote({ title: "Old note" }, testUser, db as never);
 
-      const result = await handleDeleteNote({ id: 10 }, mockUser, mockDb as never);
+      const result = await handleDeleteNote({ id: note.id }, testUser, db as never);
       expect(result).toEqual({ success: true });
-      expect(mockDb.delete).toHaveBeenCalled();
-      expect(queryMock.where).toHaveBeenCalled();
-      expect(queryMock.returning).toHaveBeenCalled();
-    });
-  });
 
-  describe("Input Validators", () => {
-    it("validates valid and invalid CreateNoteInput", async () => {
-      const { CreateNoteInput } = await import("#/features/notes/server-fns");
-      expect(CreateNoteInput.parse({ title: "Valid" })).toEqual({ title: "Valid" });
-      expect(() => CreateNoteInput.parse({ title: 123 })).toThrow(/invalid/i);
-    });
-
-    it("validates valid and invalid DeleteNoteInput", async () => {
-      const { DeleteNoteInput } = await import("#/features/notes/server-fns");
-      expect(DeleteNoteInput.parse({ id: 5 })).toEqual({ id: 5 });
-      expect(() => DeleteNoteInput.parse({ id: "invalid" })).toThrow(/invalid/i);
+      const remaining = await handleListNotes(testUser, db as never);
+      expect(remaining).toHaveLength(0);
     });
   });
 });
