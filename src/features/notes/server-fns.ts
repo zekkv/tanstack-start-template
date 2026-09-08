@@ -5,8 +5,7 @@ import { z } from "zod";
 import { db } from "#/db";
 import { notes } from "#/db/schema";
 import { getCurrentUser } from "#/features/auth/session";
-import type { SessionUser } from "#/features/auth/session-model";
-import { validateNoteTitle } from "./notes-model";
+import type { SessionUser } from "#/features/auth/session";
 
 export async function handleListNotes(user: SessionUser | null, database = db) {
   if (!user) throw new Error("Unauthorized");
@@ -23,7 +22,21 @@ export const listNotes = createServerFn({ method: "GET" }).handler(async () => {
   return handleListNotes(user);
 });
 
-export const CreateNoteInput = z.object({ title: z.string() });
+export const CreateNoteInput = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, "Title is required")
+    .max(255, "Title must be 255 characters or fewer"),
+});
+
+// Zod's own message is a JSON dump of every issue; routes toast `err.message` straight at
+// the user, so both entry points go through this and surface one sentence.
+function parseCreateNote(data: { title: string }) {
+  const parsed = CreateNoteInput.safeParse(data);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
+  return parsed.data;
+}
 
 export async function handleCreateNote(
   data: { title: string },
@@ -32,18 +45,14 @@ export async function handleCreateNote(
 ) {
   if (!user) throw new Error("Unauthorized");
 
-  const error = validateNoteTitle(data.title);
-  if (error) throw new Error(error);
+  const { title } = parseCreateNote(data);
 
-  const [note] = await database
-    .insert(notes)
-    .values({ title: data.title.trim(), userId: user.id })
-    .returning();
+  const [note] = await database.insert(notes).values({ title, userId: user.id }).returning();
   return note;
 }
 
 export const createNote = createServerFn({ method: "POST" })
-  .validator(CreateNoteInput)
+  .validator(parseCreateNote)
   .handler(async ({ data }) => {
     const user = await getCurrentUser();
     return handleCreateNote(data, user);
@@ -58,12 +67,12 @@ export async function handleDeleteNote(
 ) {
   if (!user) throw new Error("Unauthorized");
 
-  const [deleted] = await database
+  const deleted = await database
     .delete(notes)
     .where(and(eq(notes.id, data.id), eq(notes.userId, user.id)))
     .returning();
 
-  if (!deleted) throw new Error("Note not found");
+  if (!deleted.length) throw new Error("Note not found");
   return { success: true };
 }
 

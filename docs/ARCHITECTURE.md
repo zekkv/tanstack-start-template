@@ -32,9 +32,9 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 │   │   ├── schema.ts     # notes table (with userId FK)
 │   │   └── auth-schema.ts# Better Auth tables
 │   ├── features/
-│   │   ├── auth/         # Session logic, route guards, settings model, login/signup/OTP forms
+│   │   ├── auth/         # Session helpers and server fn, login/signup/OTP forms
 │   │   ├── emails/       # Email templates, schema, send guard
-│   │   └── notes/        # Notes server functions and model
+│   │   └── notes/        # Notes server functions
 │   ├── lib/              # Shared integrations and utilities
 │   │   ├── auth.ts       # Better Auth server config
 │   │   ├── auth-client.ts# Better Auth React client
@@ -76,7 +76,7 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 1. **Routing**: Managed by TanStack Router. `src/routes/__root.tsx` composes the shell, theme provider, header, and page outlet.
 2. **SSR**: TanStack Start handles the initial HTML render on the server via Nitro.
 3. **Protected routes**: `dashboard.tsx` and `settings.tsx` call `getCurrentUser()` in `beforeLoad`. Unauthenticated requests redirect to `/login`. Auth routes (`/login`, `/signup`) redirect already-signed-in users to `/dashboard`.
-4. **Server functions**: `src/features/notes/notes-fns.ts` exposes `listNotes`, `createNote`, and `deleteNote` via `createServerFn`. Each function re-checks the session server-side.
+4. **Server functions**: `src/features/notes/server-fns.ts` exposes `listNotes`, `createNote`, and `deleteNote` via `createServerFn`. Each function re-checks the session server-side.
 5. **Auth flow**: Forms in `src/features/auth/components/*` call `src/lib/auth-client.ts`. `/login` supports email OTP, passkeys, and Google OAuth (when configured). `/signup` sends an OTP; `/verify-otp` confirms it and offers passkey enrollment.
 6. **Email dispatch**: `src/routes/api/send-email.ts` requires either an authenticated session or a valid `x-email-secret` header. Dispatch itself goes through `src/lib/mailer.ts`, which throws a clear error when `RESEND_API_KEY` is not set.
 7. **File uploads**: `src/routes/api/upload-url.ts` generates a presigned PUT URL (S3-compatible). The client uploads directly to storage; the server never proxies file bytes.

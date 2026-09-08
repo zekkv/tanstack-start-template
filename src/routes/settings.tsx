@@ -6,11 +6,19 @@ import type { Passkey } from "@better-auth/passkey";
 import { toast } from "sonner";
 
 import { getCurrentUser } from "#/features/auth/session";
-import { getProtectedRouteRedirect } from "#/features/auth/session-model";
-import { getProviderLabel } from "#/features/auth/settings-model";
 import { authClient } from "#/lib/auth-client";
 import { Button } from "#/components/ui/button";
 import { createSeoHead } from "#/lib/seo";
+
+const PROVIDER_LABELS: Record<string, string> = {
+  google: "Google",
+  "email-otp": "Email OTP",
+  credential: "Password",
+};
+
+function getProviderLabel(providerId: string) {
+  return PROVIDER_LABELS[providerId] ?? providerId.charAt(0).toUpperCase() + providerId.slice(1);
+}
 
 export const Route = createFileRoute("/settings")({
   head: () =>
@@ -20,10 +28,9 @@ export const Route = createFileRoute("/settings")({
     }),
   beforeLoad: async () => {
     const user = await getCurrentUser();
-    const redirectTo = getProtectedRouteRedirect(user);
 
-    if (redirectTo || !user) {
-      throw redirect({ to: redirectTo ?? "/login" });
+    if (!user) {
+      throw redirect({ to: "/login" });
     }
 
     return { user };

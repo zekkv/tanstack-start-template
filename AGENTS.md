@@ -15,8 +15,8 @@ Read these instead of re-deriving; do not duplicate their content here.
 `package.json` only exposes whole-suite scripts; target a single test by passing the path through:
 
 ```bash
-bun run vitest run tests/unit/notes-model.test.ts     # one file
-bun run vitest run tests/unit/notes-model.test.ts -t "creates a note"   # one case
+bun run vitest run tests/unit/auth-session.test.ts            # one file
+bun run vitest run tests/unit/auth-session.test.ts -t "returns null"   # one case
 bun run playwright test tests/e2e/landing.test.ts     # one E2E file
 ```
 
@@ -26,6 +26,14 @@ bun run playwright test tests/e2e/landing.test.ts     # one E2E file
 - `test:integration` runs the Vitest `integration` project (`vitest run --project integration`), targeting `tests/integration/` with `node` environment.
 - Unit tests must not start a database container; keep them to pure logic. Testcontainers belongs in integration/E2E only.
 - Coverage is `enabled: true` in `vitest.config.ts`, so test runs rewrite `coverage/`.
+
+## File naming inside `src/features/`
+
+- A module that **statically** imports a server-only dependency (`#/db`) is named `<feature>/server-fns.ts`: the directory names the feature, the filename names the role. Exercise it from `tests/integration/`, per the pure-logic rule for unit tests above.
+- A module that reaches its server dependencies through `await import()` inside the handler keeps a plain name and stays importable from routes and unit tests. `src/features/auth/session.ts` is the example — it exports a `createServerFn` but is not a `server-fns.ts`, because nothing server-only is in its static import graph.
+- Do **not** name either kind `<feature>.server.ts`. `@tanstack/start-plugin-core`'s import-protection plugin denies `**/*.server.*` in the client environment, so the first route that imports it fails `bun run build` — and only `build`, not `type:check` and not the test suites. That suffix is only for modules nothing client-reachable imports.
+- No `-model` suffix, and no entity-name stutter (`notes/notes-fns.ts`). A helper with exactly one caller lives in that caller's file; extract it when a second caller appears, or when it has a branch worth unit-testing.
+- Server-function validation lives in the Zod schema, parsed with `safeParse` rethrowing `issues[0].message` — never let a raw `ZodError` reach a route.
 
 ## Imports
 

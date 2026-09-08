@@ -95,12 +95,6 @@
       }
     },
     {
-      "files": ["src/features/notes/notes-fns.ts"],
-      "rules": {
-        "no-unnecessary-condition": "off"
-      }
-    },
-    {
       "files": ["src/routes/api/send-email.ts"],
       "rules": {
         "no-unnecessary-condition": "off"

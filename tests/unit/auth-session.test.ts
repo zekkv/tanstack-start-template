@@ -1,41 +1,39 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vitest";
+import { getSessionUser } from "#/features/auth/session";
 
-import {
-  getAuthRouteRedirect,
-  getProtectedRouteRedirect,
-  getSessionDisplayName,
-} from "#/features/auth/session-model";
-
-describe("auth session route decisions", () => {
-  test("redirects signed-out users away from protected routes", () => {
-    expect(getProtectedRouteRedirect(null)).toBe("/login");
+describe("getSessionUser helper", () => {
+  it("returns null when session is null or has no user", () => {
+    expect(getSessionUser(null)).toBeNull();
+    expect(getSessionUser({})).toBeNull();
   });
 
-  test("keeps signed-in users on protected routes", () => {
-    expect(getProtectedRouteRedirect({ id: "user-1", email: "dev@example.com" })).toBeNull();
-  });
+  it("returns sanitized SessionUser when valid session exists", () => {
+    const rawSession = {
+      user: {
+        id: "usr_42",
+        email: "alice@example.com",
+        name: "Alice",
+        image: "https://example.com/avatar.jpg",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        emailVerified: true,
+      },
+      session: {
+        id: "sess_42",
+        userId: "usr_42",
+        expiresAt: new Date(),
+        token: "valid_token",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    };
 
-  test("redirects signed-in users away from auth routes", () => {
-    expect(getAuthRouteRedirect({ id: "user-1", email: "dev@example.com" })).toBe("/dashboard");
-  });
-
-  test("keeps signed-out users on auth routes", () => {
-    expect(getAuthRouteRedirect(null)).toBeNull();
-  });
-
-  test("uses a user's name for display when available", () => {
-    expect(
-      getSessionDisplayName({
-        id: "user-1",
-        email: "dev@example.com",
-        name: "Ada Lovelace",
-      })
-    ).toBe("Ada Lovelace");
-  });
-
-  test("falls back to email for display when name is missing", () => {
-    expect(getSessionDisplayName({ id: "user-1", email: "dev@example.com", name: " " })).toBe(
-      "dev@example.com"
-    );
+    const user = getSessionUser(rawSession);
+    expect(user).toEqual({
+      id: "usr_42",
+      email: "alice@example.com",
+      name: "Alice",
+      image: "https://example.com/avatar.jpg",
+    });
   });
 });

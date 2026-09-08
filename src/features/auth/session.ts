@@ -1,6 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 
-import type { SessionUser } from "./session-model";
+export interface SessionUser {
+  id: string;
+  email: string;
+  name?: string | null;
+  image?: string | null;
+}
 
 export function getSessionUser(
   session: {

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { handleListNotes, handleCreateNote, handleDeleteNote } from "#/features/notes/notes-fns";
-import type { SessionUser } from "#/features/auth/session-model";
+import { handleListNotes, handleCreateNote, handleDeleteNote } from "#/features/notes/server-fns";
+import type { SessionUser } from "#/features/auth/session";
 
 const mockNotes = [
   { id: 1, title: "Note 1", userId: "user-1", createdAt: new Date(), updatedAt: new Date() },
@@ -82,6 +82,13 @@ describe("Notes Server Logic", () => {
       ).rejects.toThrow("Title must be 255 characters or fewer");
     });
 
+    it("accepts a title of exactly 255 characters", async () => {
+      queryMock.returning.mockResolvedValueOnce([{ id: 1 }]);
+      await expect(
+        handleCreateNote({ title: "a".repeat(255) }, mockUser, mockDb as never)
+      ).resolves.toBeDefined();
+    });
+
     it("inserts note with trimmed title and returns the new note", async () => {
       const created = {
         id: 42,
@@ -135,13 +142,13 @@ describe("Notes Server Logic", () => {
 
   describe("Input Validators", () => {
     it("validates valid and invalid CreateNoteInput", async () => {
-      const { CreateNoteInput } = await import("#/features/notes/notes-fns");
+      const { CreateNoteInput } = await import("#/features/notes/server-fns");
       expect(CreateNoteInput.parse({ title: "Valid" })).toEqual({ title: "Valid" });
       expect(() => CreateNoteInput.parse({ title: 123 })).toThrow(/invalid/i);
     });
 
     it("validates valid and invalid DeleteNoteInput", async () => {
-      const { DeleteNoteInput } = await import("#/features/notes/notes-fns");
+      const { DeleteNoteInput } = await import("#/features/notes/server-fns");
       expect(DeleteNoteInput.parse({ id: 5 })).toEqual({ id: 5 });
       expect(() => DeleteNoteInput.parse({ id: "invalid" })).toThrow(/invalid/i);
     });

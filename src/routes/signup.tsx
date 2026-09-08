@@ -1,7 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { SignupForm } from "#/features/auth/components/signup-form";
 import { getCurrentUser } from "#/features/auth/session";
-import { getAuthRouteRedirect } from "#/features/auth/session-model";
 import { createSeoHead } from "#/lib/seo";
 
 function SignupPage() {
@@ -19,10 +18,8 @@ export const Route = createFileRoute("/signup")({
       noindex: true,
     }),
   beforeLoad: async () => {
-    const redirectTo = getAuthRouteRedirect(await getCurrentUser());
-
-    if (redirectTo) {
-      throw redirect({ to: redirectTo });
+    if (await getCurrentUser()) {
+      throw redirect({ to: "/dashboard" });
     }
   },
   component: SignupPage,

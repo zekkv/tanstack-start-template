@@ -4,8 +4,7 @@ import { useState, useRef } from "react";
 import { toast } from "sonner";
 
 import { getCurrentUser } from "#/features/auth/session";
-import { getProtectedRouteRedirect, getSessionDisplayName } from "#/features/auth/session-model";
-import { listNotes, createNote, deleteNote } from "#/features/notes/notes-fns";
+import { listNotes, createNote, deleteNote } from "#/features/notes/server-fns";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { createSeoHead } from "#/lib/seo";
@@ -18,10 +17,9 @@ export const Route = createFileRoute("/dashboard")({
     }),
   beforeLoad: async () => {
     const user = await getCurrentUser();
-    const redirectTo = getProtectedRouteRedirect(user);
 
-    if (redirectTo || !user) {
-      throw redirect({ to: redirectTo ?? "/login" });
+    if (!user) {
+      throw redirect({ to: "/login" });
     }
 
     return { user };
@@ -77,7 +75,7 @@ function DashboardPage() {
             Dashboard
           </p>
           <h1 className="font-heading mt-3 text-3xl font-semibold tracking-tight md:text-4xl">
-            Welcome, {getSessionDisplayName(user)}
+            Welcome, {user.name?.trim() || user.email}
           </h1>
           <p className="mt-3 max-w-xl text-muted-foreground">
             A protected route exercising the full loop: session, server functions, database,
