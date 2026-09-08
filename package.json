@@ -23,6 +23,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
+    "db:seed": "bun scripts/seed.ts",
     "db:studio": "drizzle-kit studio",
     "codegen": "playwright codegen",
     "test": "vitest run",

@@ -3,11 +3,12 @@ import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
+import { seed } from "../../scripts/seed";
 
 let container: StartedPostgreSqlContainer | undefined;
 
 /**
- * Spins up a postgres:18-alpine testcontainer and pushes the database schema.
+ * Spins up a postgres:18-alpine testcontainer, pushes the database schema, and seeds test data.
  */
 export async function setup(): Promise<void> {
   if (container) {
@@ -27,6 +28,8 @@ export async function setup(): Promise<void> {
     },
     stdio: "inherit",
   });
+
+  await seed(connectionUri);
 }
 
 /**

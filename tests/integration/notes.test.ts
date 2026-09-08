@@ -7,13 +7,13 @@ import { handleListNotes, handleCreateNote, handleDeleteNote } from "#/features/
 import type { SessionUser } from "#/features/auth/session";
 
 const testUser: SessionUser = {
-  id: "user-test-notes-1",
-  email: "notes-user-1@example.com",
+  id: "test-user-1",
+  email: "john.doe@example.com",
 };
 
 const otherUser: SessionUser = {
-  id: "user-test-notes-2",
-  email: "notes-user-2@example.com",
+  id: "test-user-2",
+  email: "jane.doe@example.com",
 };
 
 describe("Notes Server Logic (Database Integration)", () => {
@@ -23,25 +23,6 @@ describe("Notes Server Logic (Database Integration)", () => {
   beforeAll(async () => {
     pool = new Pool({ connectionString: process.env.DATABASE_URL });
     db = drizzle(pool, { schema });
-
-    // Seed test users to satisfy notes foreign key constraint
-    await db
-      .insert(schema.user)
-      .values([
-        {
-          id: testUser.id,
-          name: "Notes User 1",
-          email: testUser.email,
-          emailVerified: true,
-        },
-        {
-          id: otherUser.id,
-          name: "Notes User 2",
-          email: otherUser.email,
-          emailVerified: true,
-        },
-      ])
-      .onConflictDoNothing();
   });
 
   afterAll(async () => {

@@ -61,6 +61,12 @@ A production-ready full-stack web application template **opinionated towards [Bu
 
    _(Or push schema directly during local prototyping: `bun run db:push`)_
 
+   Optionally seed with initial data:
+
+   ```bash
+   bun run db:seed
+   ```
+
 5. **Start the dev server**
 
    ```bash
@@ -117,6 +123,7 @@ bunx playwright test --ui  # Interactive Playwright UI
 | `bun run db:generate`      | Generate Drizzle migration files    |
 | `bun run db:migrate`       | Apply pending Drizzle migrations    |
 | `bun run db:push`          | Push schema to local database       |
+| `bun run db:seed`          | Seed database with initial data     |
 | `bun run db:studio`        | Open Drizzle Studio                 |
 | `bun run test`             | Run all Vitest projects             |
 | `bun run test:unit`        | Run Vitest unit test project        |
