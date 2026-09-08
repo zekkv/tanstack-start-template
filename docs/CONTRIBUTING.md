@@ -3,13 +3,13 @@
 ## Prerequisites
 
 - [Bun](https://bun.sh) 1.3.14
-- Docker (for Postgres, MinIO, and Maildev)
+- Docker (for Postgres and MinIO)
 
 ## Setup
 
 ```bash
 cp .env.example .env
-docker compose up -d postgres maildev minio minio_init
+docker compose up -d postgres minio minio_init
 bun install
 bun run db:migrate # or bun run db:push
 bun run dev
