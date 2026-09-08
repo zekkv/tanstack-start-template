@@ -20,7 +20,6 @@ const config = defineConfig(({ mode }) => {
 
   return {
     customLogger: logger,
-    resolve: { tsconfigPaths: true },
     optimizeDeps: {
       exclude: ["bun"],
     },
