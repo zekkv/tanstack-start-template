@@ -44,7 +44,6 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 │   │   ├── redis.ts      # Bun-native Redis client (optional)
 │   │   ├── seo.ts        # SEO metadata, OpenGraph, structured data, crawler formats
 │   │   ├── storage.ts    # Bun-native S3-compatible upload client (optional)
-│   │   ├── query-client.tsx
 │   │   └── utils.ts
 │   ├── routes/           # TanStack Router routes and API handlers
 │   │   ├── __root.tsx    # App shell
@@ -61,7 +60,6 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 │   │   └── api/
 │   │       ├── auth/$.ts    # Better Auth handler
 │   │       ├── health.ts
-│   │       ├── send-email.ts# Auth-guarded email dispatch
 │   │       ├── upload-url.ts# Auth-guarded presigned PUT URL
 │   │       └── sentry-example.ts # Dev only
 │   └── globals.css       # Global styles (Tailwind CSS v4)
@@ -80,8 +78,7 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 3. **Protected routes**: `dashboard.tsx` and `settings.tsx` call `getCurrentUser()` in `beforeLoad`. Unauthenticated requests redirect to `/login`. Auth routes (`/login`, `/signup`) redirect already-signed-in users to `/dashboard`.
 4. **Server functions**: `src/features/notes/server-fns.ts` exposes `listNotes`, `createNote`, and `deleteNote` via `createServerFn`. Each function re-checks the session server-side.
 5. **Auth flow**: Forms in `src/features/auth/components/*` call `src/lib/auth-client.ts`. `/login` supports email + password, email OTP, passkeys, and Google OAuth (when configured). `/signup` creates a password account (then holds the user on a "check your email" prompt) or sends an OTP; `/verify-otp` confirms the code and offers passkey enrollment; `/reset-password` both requests a reset link and consumes it (`?token=`).
-6. **Email dispatch**: `src/routes/api/send-email.ts` requires either an authenticated session or a valid `x-email-secret` header. Dispatch itself goes through `src/lib/mailer.ts`, which throws a clear error when `RESEND_API_KEY` is not set.
-7. **File uploads**: `src/routes/api/upload-url.ts` generates a presigned PUT URL (S3-compatible). The client uploads directly to storage; the server never proxies file bytes.
+6. **File uploads**: `src/routes/api/upload-url.ts` generates a presigned PUT URL (S3-compatible). The client uploads directly to storage; the server never proxies file bytes.
 
 ## Database & Migrations
 

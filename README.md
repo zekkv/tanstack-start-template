@@ -87,7 +87,6 @@ A production-ready full-stack web application template **opinionated towards [Bu
 | `GOOGLE_CLIENT_SECRET` | Optional | Enables Google OAuth when set together with ID                                                                                                           |
 | `RESEND_API_KEY`       | Optional | Required to send email. App boots without it; email calls throw a clear error                                                                            |
 | `EMAIL_FROM`           | Optional | Sender address (default: `onboarding@resend.dev`)                                                                                                        |
-| `EMAIL_API_SECRET`     | Optional | 16+ char secret for server-to-server email dispatch via `x-email-secret` header                                                                          |
 | `MINIO_ENDPOINT`       | Optional | S3-compatible endpoint — enables file uploads. Accepts MinIO, AWS S3, Cloudflare R2, or Supabase Storage (`https://<project>.supabase.co/storage/v1/s3`) |
 | `MINIO_BUCKET`         | Optional | Bucket name (default: `app`)                                                                                                                             |
 | `MINIO_ACCESS_KEY`     | Optional | Storage access key (default: `admin`)                                                                                                                    |
