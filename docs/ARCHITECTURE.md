@@ -28,7 +28,8 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 │   │   ├── pages/        # Route-level page compositions
 │   │   ├── providers/    # Client providers (theme)
 │   │   └── ui/           # Reusable UI primitives
-│   ├── db/               # Drizzle schema and client
+│   ├── db/               # Drizzle schema, client, and migrations
+│   │   ├── drizzle/      # Generated SQL migrations (drizzle-kit)
 │   │   ├── schema.ts     # notes table (with userId FK)
 │   │   └── auth-schema.ts# Better Auth tables
 │   ├── features/
@@ -81,6 +82,15 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 5. **Auth flow**: Forms in `src/features/auth/components/*` call `src/lib/auth-client.ts`. `/login` supports email + password, email OTP, passkeys, and Google OAuth (when configured). `/signup` creates a password account (then holds the user on a "check your email" prompt) or sends an OTP; `/verify-otp` confirms the code and offers passkey enrollment; `/reset-password` both requests a reset link and consumes it (`?token=`).
 6. **Email dispatch**: `src/routes/api/send-email.ts` requires either an authenticated session or a valid `x-email-secret` header. Dispatch itself goes through `src/lib/mailer.ts`, which throws a clear error when `RESEND_API_KEY` is not set.
 7. **File uploads**: `src/routes/api/upload-url.ts` generates a presigned PUT URL (S3-compatible). The client uploads directly to storage; the server never proxies file bytes.
+
+## Database & Migrations
+
+PostgreSQL is accessed using [Drizzle ORM](https://orm.drizzle.team/) paired with Bun's native SQL driver (`bun:sql` via `drizzle-orm/bun-sql`).
+
+- **Schemas**: Defined in `src/db/schema.ts` (application tables such as `notes`) and `src/db/auth-schema.ts` (Better Auth tables: `user`, `session`, `account`, `verification`, `passkey`).
+- **Migrations Directory**: Configured in `drizzle.config.ts` to output migrations to `src/db/drizzle/`.
+- **Generating Migrations**: When schema files are updated, run `bun run db:generate` to produce timestamped SQL migration files and update the snapshot journal in `src/db/drizzle/meta/`. Never handwrite SQL migrations.
+- **Applying Migrations**: Run `bun run db:migrate` to execute pending SQL migrations against the configured database (`DATABASE_URL`). For quick local development without migration tracking, `bun run db:push` can be used.
 
 ## Authentication
 

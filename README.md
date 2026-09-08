@@ -51,11 +51,15 @@ A production-ready full-stack web application template **opinionated towards [Bu
    docker compose up -d
    ```
 
-4. **Push the database schema**
+4. **Prepare the database**
+
+   Apply migrations:
 
    ```bash
-   bun run db:push
+   bun run db:migrate
    ```
+
+   _(Or push schema directly during local prototyping: `bun run db:push`)_
 
 5. **Start the dev server**
 
@@ -110,8 +114,9 @@ bunx playwright test --ui  # Interactive Playwright UI
 | `bun run lint:fix`         | Fix lint warnings with Oxlint       |
 | `bun run format:check`     | Check formatting with Oxfmt         |
 | `bun run format:fix`       | Fix formatting with Oxfmt           |
-| `bun run db:push`          | Push schema to local database       |
 | `bun run db:generate`      | Generate Drizzle migration files    |
+| `bun run db:migrate`       | Apply pending Drizzle migrations    |
+| `bun run db:push`          | Push schema to local database       |
 | `bun run db:studio`        | Open Drizzle Studio                 |
 | `bun run test`             | Run all Vitest projects             |
 | `bun run test:unit`        | Run Vitest unit test project        |

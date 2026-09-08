@@ -148,3 +148,15 @@ Netlify also auto-detects this from the build environment. Same edge runtime lim
 **Redis**: Set `REDIS_URL` (e.g. `redis://localhost:6379`). Bun includes a high-performance native Redis client (`Bun.RedisClient`) that connects directly to Redis/Valkey instances without intermediary HTTP proxies.
 
 **Sentry**: Set `VITE_SENTRY_DSN`. The plugin only runs source map uploads at build time when `SENTRY_AUTH_TOKEN` is set; runtime error capture works from the DSN alone.
+
+---
+
+## Database migrations in production
+
+Before starting a new application release or as part of your CI/CD deployment pipeline, apply pending migrations against your production database:
+
+```bash
+bun run db:migrate
+```
+
+This applies unapplied SQL migrations from `src/db/drizzle/` in sequential order using Drizzle Kit. Avoid using `db:push` in production environments as it does not record migration history.
