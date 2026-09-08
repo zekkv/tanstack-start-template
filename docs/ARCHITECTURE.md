@@ -17,9 +17,10 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 ├── docs/
 │   ├── ARCHITECTURE.md   # This file
 │   ├── CHANGELOG.md      # Release history
-│   ├── DESIGN.md         # Visual system notes
 │   ├── CONTRIBUTING.md   # Branch, commit, and test conventions
-│   └── DEPLOYMENT.md     # Hosting options and platform config
+│   ├── DEPLOYMENT.md     # Hosting options and platform config
+│   ├── DESIGN.md         # Visual system notes
+│   └── DEVELOPMENT.md    # Local setup, scripts, database, and testing guide
 ├── AGENTS.md             # Developer guide for agents (also CLAUDE.md)
 ├── CLAUDE.md             # Claude Code entry point — includes AGENTS.md
 ├── src/
@@ -88,6 +89,8 @@ PostgreSQL is accessed using [Drizzle ORM](https://orm.drizzle.team/) paired wit
 - **Migrations Directory**: Configured in `drizzle.config.ts` to output migrations to `src/db/drizzle/`.
 - **Generating Migrations**: When schema files are updated, run `bun run db:generate` to produce timestamped SQL migration files and update the snapshot journal in `src/db/drizzle/meta/`. Never handwrite SQL migrations.
 - **Applying Migrations**: Run `bun run db:migrate` to execute pending SQL migrations against the configured database (`DATABASE_URL`). For quick local development without migration tracking, `bun run db:push` can be used.
+
+For developer commands, seeding, and local workflows, see the [Development Guide](./DEVELOPMENT.md#database-management--migrations).
 
 ## Authentication
 

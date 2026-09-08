@@ -1,19 +1,8 @@
 # Contributing
 
-## Prerequisites
+## Local Development
 
-- [Bun](https://bun.sh) 1.3.14
-- Docker (for Postgres and MinIO)
-
-## Setup
-
-```bash
-cp .env.example .env
-docker compose up -d postgres minio minio_init
-bun install
-bun run db:migrate # or bun run db:push
-bun run dev
-```
+Before opening a pull request, ensure your local environment is configured and working. Follow the instructions in the [Development Guide](./DEVELOPMENT.md) for prerequisites, local service orchestration (Docker Compose), and the complete scripts catalog.
 
 ## Branches
 
@@ -30,9 +19,9 @@ fix: redirect signed-in users away from /login
 chore: pin Bun version in CI
 ```
 
-## Tests
+## Pre-PR Verification
 
-Run the full suite before opening a PR:
+Run the full verification suite before opening a PR:
 
 ```bash
 bun run lint:check
@@ -43,18 +32,17 @@ bun run test:integration
 bun run test:e2e
 ```
 
-Unit tests live in `tests/unit/` (run with `bun run test:unit`). They must not start a database container — test pure logic only. Integration tests live in `tests/integration/` (run with `bun run test:integration`) and may use Testcontainers (Postgres). E2E tests live in `tests/e2e/` (run with `bun run test:e2e`) and use Playwright.
-
-New features need at least one unit test covering the core behaviour. New routes need at least one Playwright smoke test verifying the happy path and any redirect guards.
+New features need at least one unit test covering the core behaviour. New routes need at least one Playwright smoke test verifying the happy path and any redirect guards. For detailed test tier rules and running targeted tests, see the [Testing Guide in DEVELOPMENT.md](./DEVELOPMENT.md#testing-guide).
 
 ## Database changes
 
 When modifying database schemas (`src/db/schema.ts`, `src/db/auth-schema.ts`):
 
-1. **Always generate migrations**: Run `bun run db:generate` to generate the versioned migration SQL files in `src/db/drizzle/`.
-2. **Never handwrite SQL migrations**: Drizzle Kit automatically manages schema snapshots and migration files.
-3. **Commit both**: Commit schema changes together with the generated migration files in `src/db/drizzle/`.
-4. **Apply migrations**: Run `bun run db:migrate` to verify they apply cleanly against your database (or `bun run db:push` during quick prototyping).
+1. **Always generate migrations**: Run `bun run db:generate` to produce versioned migration SQL in `src/db/drizzle/`. Never handwrite SQL migrations.
+2. **Commit both**: Commit schema changes together with the generated migration files.
+3. **Verify migrations**: Run `bun run db:migrate` to verify they apply cleanly against your local database.
+
+See [Database Management in DEVELOPMENT.md](./DEVELOPMENT.md#database-management--migrations) for full workflow details.
 
 ## Adding dependencies
 

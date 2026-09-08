@@ -7,8 +7,9 @@ This file provides guidance to AI agents when working with code in this reposito
 Read these instead of re-deriving; do not duplicate their content here.
 
 - `docs/ARCHITECTURE.md` — stack, directory map, data flow, auth flows, observability config.
+- `docs/DEVELOPMENT.md` — local setup, environment variables, scripts, database workflows, testing, and tooling.
 - `docs/CONTRIBUTING.md` — branch names, Conventional Commits, dependency and env-var rules.
-- `README.md` — setup, environment variables, local services.
+- `README.md` — overview, quickstart, local services.
 
 ## Running a single test
 
