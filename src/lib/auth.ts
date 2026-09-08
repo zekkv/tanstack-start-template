@@ -10,6 +10,8 @@ import * as schema from "#/db/schema";
 import { env } from "#/env";
 import { sendEmail } from "#/lib/mailer";
 import { OtpEmail } from "#/features/emails/components/otp-email";
+import { ResetPasswordEmail } from "#/features/emails/components/reset-password-email";
+import { VerificationEmail } from "#/features/emails/components/verification-email";
 import { logger } from "#/lib/logger";
 import { redis } from "#/lib/redis";
 
@@ -56,6 +58,29 @@ export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
   ...(secondaryStorage ? { secondaryStorage } : {}),
+
+  // Password sign-ups start unverified, and an email-OTP sign-in by an unverified user makes
+  // Better Auth revoke every account it holds (its account-takeover defence) — which would drop
+  // the password the user just set. Sending a verification link on sign-up closes that window.
+  emailVerification: {
+    sendOnSignUp: true,
+    async sendVerificationEmail({ user, url }) {
+      logger.info("Sending verification email", { email: user.email });
+      await sendEmail(user.email, "Verify your email", createElement(VerificationEmail, { url }));
+    },
+  },
+
+  emailAndPassword: {
+    enabled: true,
+    async sendResetPassword({ user, url }) {
+      logger.info("Sending password reset email", { email: user.email });
+      await sendEmail(
+        user.email,
+        "Reset your password",
+        createElement(ResetPasswordEmail, { url, user: { email: user.email } })
+      );
+    },
+  },
 
   socialProviders:
     env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET

@@ -7,7 +7,7 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 - **Framework**: [TanStack Start](https://tanstack.com/start) — full-stack React with TanStack Router, server functions, and SSR.
 - **Server**: [Nitro](https://nitro.unjs.io/) — handles server-side logic and deployment presets.
 - **ORM & Database**: [Drizzle ORM](https://orm.drizzle.team/) with Bun's native SQL driver (`bun:sql` / `drizzle-orm/bun-sql`) — high-performance, zero-dependency PostgreSQL access.
-- **Auth**: [Better Auth](https://better-auth.com/) — email OTP, passkeys, and optional Google OAuth. Rate limited at the Better Auth layer (20 req/60 s).
+- **Auth**: [Better Auth](https://better-auth.com/) — email + password, email OTP, passkeys, and optional Google OAuth. Rate limited at the Better Auth layer (20 req/60 s).
 - **Theme**: [next-themes](https://github.com/pacocoursey/next-themes) — class-based theme management on `html` with a mounted client toggle.
 
 ## Directory Structure
@@ -32,7 +32,7 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 │   │   ├── schema.ts     # notes table (with userId FK)
 │   │   └── auth-schema.ts# Better Auth tables
 │   ├── features/
-│   │   ├── auth/         # Session helpers and server fn, login/signup/OTP forms
+│   │   ├── auth/         # Session helpers and server fn, login/signup/OTP/reset forms
 │   │   ├── emails/       # Email templates, schema, send guard
 │   │   └── notes/        # Notes server functions
 │   ├── lib/              # Shared integrations and utilities
@@ -51,6 +51,7 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 │   │   ├── login.tsx     # Auth route — redirects signed-in users
 │   │   ├── signup.tsx    # Auth route — redirects signed-in users
 │   │   ├── verify-otp.tsx
+│   │   ├── reset-password.tsx # Request a reset link, or set a new password with ?token=
 │   │   ├── dashboard.tsx # Protected route — notes CRUD, upload widget
 │   │   ├── settings.tsx  # Protected route — profile, providers, passkeys, delete account
 │   │   ├── sentry-example.tsx # Dev only
@@ -77,7 +78,7 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 2. **SSR**: TanStack Start handles the initial HTML render on the server via Nitro.
 3. **Protected routes**: `dashboard.tsx` and `settings.tsx` call `getCurrentUser()` in `beforeLoad`. Unauthenticated requests redirect to `/login`. Auth routes (`/login`, `/signup`) redirect already-signed-in users to `/dashboard`.
 4. **Server functions**: `src/features/notes/server-fns.ts` exposes `listNotes`, `createNote`, and `deleteNote` via `createServerFn`. Each function re-checks the session server-side.
-5. **Auth flow**: Forms in `src/features/auth/components/*` call `src/lib/auth-client.ts`. `/login` supports email OTP, passkeys, and Google OAuth (when configured). `/signup` sends an OTP; `/verify-otp` confirms it and offers passkey enrollment.
+5. **Auth flow**: Forms in `src/features/auth/components/*` call `src/lib/auth-client.ts`. `/login` supports email + password, email OTP, passkeys, and Google OAuth (when configured). `/signup` creates a password account (then holds the user on a "check your email" prompt) or sends an OTP; `/verify-otp` confirms the code and offers passkey enrollment; `/reset-password` both requests a reset link and consumes it (`?token=`).
 6. **Email dispatch**: `src/routes/api/send-email.ts` requires either an authenticated session or a valid `x-email-secret` header. Dispatch itself goes through `src/lib/mailer.ts`, which throws a clear error when `RESEND_API_KEY` is not set.
 7. **File uploads**: `src/routes/api/upload-url.ts` generates a presigned PUT URL (S3-compatible). The client uploads directly to storage; the server never proxies file bytes.
 
@@ -85,6 +86,9 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 
 Handled by **Better Auth**. Supported flows:
 
+- **Email + password** — sign up and sign in with a password. The sign-up and reset forms share `PasswordSchema` (`src/features/auth/schema/password.ts`): 8–128 characters with at least one number and one symbol. That policy is client-side; Better Auth itself only enforces its 8-character minimum, so add a `before` hook on `/sign-up/email` and `/reset-password` if you need it enforced server-side too. Always available. Password hashes live in the existing `account.password` column, so no migration is involved. Sign-ups are stored with an empty `name`, matching what the email-OTP flow does, and are auto-signed-in (`requireEmailVerification` is off, so an unverified user can still sign in).
+- **Email verification** — `emailVerification.sendOnSignUp` mails a link via the `VerificationEmail` template; Better Auth's own `/api/auth/verify-email` endpoint consumes it, so there is no app route for it. `/signup` shows a "check your email" prompt after a password sign-up rather than navigating away, because the window this closes is otherwise invisible: an email-OTP sign-in by an **unverified** user triggers Better Auth's `revokeUnprovenAccountAccess`, which deletes every account row and session that user has (its defence against someone registering a password on an address they do not own) — so an unverified password would be discarded the first time that user signs in with a code. Verified users keep their password across an OTP sign-in. Set `emailAndPassword.requireEmailVerification: true` if you would rather block sign-in until the link is clicked.
+- **Password reset** — `/reset-password` sends a link (1 hour expiry) via `ResetPasswordEmail`. Better Auth's callback bounces the emailed link off `/api/auth/reset-password/:token` and back to `/reset-password?token=…`, or `?error=INVALID_TOKEN` when it has expired. Reset also _creates_ a credential account when the user has none, so OTP-only and Google-only users can adopt a password this way. It does not create a session; the user signs in afterwards.
 - **Email OTP** — sign in and sign up via one-time code. Always available.
 - **Passkeys** — register and authenticate with a device credential. Always available.
 - **Google OAuth** — enabled only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set. The app boots and functions without them.

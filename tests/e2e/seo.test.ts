@@ -90,6 +90,15 @@ test.describe("SEO and Metadata", () => {
     await expect(page).toHaveTitle(/Sign Up/i);
   });
 
+  test("reset-password route contains noindex directive and title", async ({ page }) => {
+    await page.goto("/reset-password");
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+      "content",
+      "noindex, nofollow"
+    );
+    await expect(page).toHaveTitle(/Reset Password/i);
+  });
+
   test("verify-otp route contains noindex directive and title", async ({ page }) => {
     await page.goto("/verify-otp?email=test%40example.com&flow=sign-in");
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute(

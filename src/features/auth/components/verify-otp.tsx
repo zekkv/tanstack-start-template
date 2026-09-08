@@ -99,7 +99,7 @@ export function VerifyOtpForm({ email, flow, className, ...props }: VerifyOtpFor
                   aria-invalid={field.state.meta.errors.length > 0}
                   className="text-center tracking-widest text-lg"
                 />
-                <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />
+                <FieldError errors={field.state.meta.errors} />
               </Field>
             )}
           </form.Field>

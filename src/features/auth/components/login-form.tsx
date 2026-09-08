@@ -17,12 +17,14 @@ import { useEffect, useState } from "react";
 
 const schema = z.object({
   email: z.email("Enter a valid email address"),
+  password: z.string().min(1, "Enter your password"),
 });
 
 export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
   const navigate = useNavigate();
   const [serverError, setServerError] = useState<string | null>(null);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
 
   const handlePasskeySignIn = async () => {
     setServerError(null);
@@ -53,21 +55,38 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
   }, [navigate]);
 
   const form = useForm({
-    defaultValues: { email: "" },
+    defaultValues: { email: "", password: "" },
     validators: { onSubmit: schema },
     onSubmit: async ({ value }) => {
       setServerError(null);
-      const { error } = await authClient.emailOtp.sendVerificationOtp({
+      const { error } = await authClient.signIn.email({
         email: value.email,
-        type: "sign-in",
+        password: value.password,
       });
       if (error) {
-        setServerError(error.message ?? "Failed to send code. Try again.");
+        setServerError(error.message ?? "Invalid email or password.");
         return;
       }
-      await navigate({ to: "/verify-otp", search: { email: value.email, flow: "sign-in" } });
+      await navigate({ to: "/" });
     },
   });
+
+  const handleOtpSignIn = async () => {
+    setServerError(null);
+    const email = form.getFieldValue("email");
+    if (!z.email().safeParse(email).success) {
+      setServerError("Enter a valid email address to receive a code.");
+      return;
+    }
+    setOtpLoading(true);
+    const { error } = await authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
+    setOtpLoading(false);
+    if (error) {
+      setServerError(error.message ?? "Failed to send code. Try again.");
+      return;
+    }
+    await navigate({ to: "/verify-otp", search: { email, flow: "sign-in" } });
+  };
 
   return (
     <div className={cn("flex flex-col gap-5", className)} {...props}>
@@ -99,7 +118,28 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
                   onBlur={field.handleBlur}
                   aria-invalid={field.state.meta.errors.length > 0}
                 />
-                <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />
+                <FieldError errors={field.state.meta.errors} />
+              </Field>
+            )}
+          </form.Field>
+
+          <form.Field name="password">
+            {field => (
+              <Field>
+                <FieldLabel htmlFor="password">Password</FieldLabel>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={field.state.value}
+                  onChange={e => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  aria-invalid={field.state.meta.errors.length > 0}
+                />
+                <FieldError errors={field.state.meta.errors} />
+                <FieldDescription>
+                  <Link to="/reset-password">Forgot your password?</Link>
+                </FieldDescription>
               </Field>
             )}
           </form.Field>
@@ -110,7 +150,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
             {isSubmitting => (
               <Field>
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Sending code..." : "Continue with email"}
+                  {isSubmitting ? "Signing in..." : "Sign in"}
                 </Button>
               </Field>
             )}
@@ -119,6 +159,14 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
           <FieldSeparator>Or</FieldSeparator>
 
           <Field className="grid gap-3">
+            <Button
+              variant="outline"
+              type="button"
+              disabled={otpLoading}
+              onClick={() => void handleOtpSignIn()}
+            >
+              {otpLoading ? "Sending code..." : "Email me a sign-in code"}
+            </Button>
             <Button
               variant="outline"
               type="button"

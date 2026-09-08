@@ -15,6 +15,9 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("#/lib/auth-client", () => ({
   authClient: {
     signIn: {
+      email: vi
+        .fn<() => Promise<{ data: null; error: null }>>()
+        .mockResolvedValue({ data: null, error: null }),
       passkey: vi
         .fn<() => Promise<{ data: null; error: null }>>()
         .mockResolvedValue({ data: null, error: null }),
@@ -39,12 +42,14 @@ if (typeof globalThis.PublicKeyCredential === "undefined") {
 }
 
 describe("LoginForm component", () => {
-  it("renders email input and submission controls", () => {
+  it("renders email and password inputs plus submission controls", () => {
     render(<LoginForm />);
 
     expect(screen.getByText("Welcome back")).toBeTruthy();
     expect(screen.getByLabelText(/email/i)).toBeTruthy();
-    expect(screen.getByRole("button", { name: /continue with email/i })).toBeTruthy();
+    expect(screen.getByLabelText(/password/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^sign in$/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /email me a sign-in code/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /sign in with passkey/i })).toBeTruthy();
   });
 
@@ -60,20 +65,53 @@ describe("LoginForm component", () => {
 
     await waitFor(() => {
       expect(emailInput.getAttribute("aria-invalid")).toBe("true");
-      expect(screen.getByRole("alert")).toBeTruthy();
+      expect(screen.getByText("Enter a valid email address")).toBeTruthy();
     });
   });
 
-  it("calls sendVerificationOtp with valid email", async () => {
+  it("signs in with email and password", async () => {
     const { authClient } = await import("#/lib/auth-client");
     const user = userEvent.setup();
     render(<LoginForm />);
 
-    const emailInput = screen.getByLabelText(/email/i);
-    await user.type(emailInput, "test@example.com");
+    await user.type(screen.getByLabelText(/email/i), "test@example.com");
+    await user.type(screen.getByLabelText(/password/i), "correct-horse");
+    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
 
-    const submitButton = screen.getByRole("button", { name: /continue with email/i });
-    await user.click(submitButton);
+    await waitFor(() => {
+      expect(authClient.signIn.email).toHaveBeenCalledWith({
+        email: "test@example.com",
+        password: "correct-horse",
+      });
+    });
+  });
+
+  it("displays server error when password sign-in fails", async () => {
+    const { authClient } = await import("#/lib/auth-client");
+    vi.mocked(authClient.signIn.email).mockResolvedValueOnce({
+      data: null,
+      error: { message: "Invalid email or password", status: 401 } as never,
+    });
+
+    const user = userEvent.setup();
+    render(<LoginForm />);
+
+    await user.type(screen.getByLabelText(/email/i), "test@example.com");
+    await user.type(screen.getByLabelText(/password/i), "wrong-password");
+    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Invalid email or password")).toBeTruthy();
+    });
+  });
+
+  it("calls sendVerificationOtp when requesting a sign-in code", async () => {
+    const { authClient } = await import("#/lib/auth-client");
+    const user = userEvent.setup();
+    render(<LoginForm />);
+
+    await user.type(screen.getByLabelText(/email/i), "test@example.com");
+    await user.click(screen.getByRole("button", { name: /email me a sign-in code/i }));
 
     await waitFor(() => {
       expect(authClient.emailOtp.sendVerificationOtp).toHaveBeenCalledWith({
@@ -81,5 +119,20 @@ describe("LoginForm component", () => {
         type: "sign-in",
       });
     });
+  });
+
+  it("does not request a code without a valid email", async () => {
+    const { authClient } = await import("#/lib/auth-client");
+    vi.mocked(authClient.emailOtp.sendVerificationOtp).mockClear();
+    const user = userEvent.setup();
+    render(<LoginForm />);
+
+    await user.type(screen.getByLabelText(/email/i), "nope");
+    await user.click(screen.getByRole("button", { name: /email me a sign-in code/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/enter a valid email address to receive a code/i)).toBeTruthy();
+    });
+    expect(authClient.emailOtp.sendVerificationOtp).not.toHaveBeenCalled();
   });
 });

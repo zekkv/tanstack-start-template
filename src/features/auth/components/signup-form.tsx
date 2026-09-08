@@ -13,32 +13,77 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
+import { PasswordSchema } from "#/features/auth/schema/password";
 import { useState } from "react";
 
 const schema = z.object({
   email: z.email("Enter a valid email address"),
+  password: PasswordSchema,
 });
 
 export function SignupForm({ className, ...props }: React.ComponentProps<"div">) {
   const navigate = useNavigate();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
 
   const form = useForm({
-    defaultValues: { email: "" },
+    defaultValues: { email: "", password: "" },
     validators: { onSubmit: schema },
     onSubmit: async ({ value }) => {
       setServerError(null);
-      const { error } = await authClient.emailOtp.sendVerificationOtp({
+      // ponytail: name is "" to match what the email-OTP flow stores; add a field if profiles need one.
+      const { error } = await authClient.signUp.email({
+        name: "",
         email: value.email,
-        type: "sign-in",
+        password: value.password,
       });
       if (error) {
-        setServerError(error.message ?? "Failed to send code. Try again.");
+        setServerError(error.message ?? "Could not create your account. Try again.");
         return;
       }
-      await navigate({ to: "/verify-otp", search: { email: value.email, flow: "sign-up" } });
+      setVerifyEmail(value.email);
     },
   });
+
+  const handleOtpSignUp = async () => {
+    setServerError(null);
+    const email = form.getFieldValue("email");
+    if (!z.email().safeParse(email).success) {
+      setServerError("Enter a valid email address to receive a code.");
+      return;
+    }
+    setOtpLoading(true);
+    const { error } = await authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
+    setOtpLoading(false);
+    if (error) {
+      setServerError(error.message ?? "Failed to send code. Try again.");
+      return;
+    }
+    await navigate({ to: "/verify-otp", search: { email, flow: "sign-up" } });
+  };
+
+  if (verifyEmail) {
+    return (
+      <div className={cn("flex flex-col gap-5", className)} {...props}>
+        <FieldGroup className="gap-5">
+          <div className="flex flex-col items-center gap-1.5 text-center">
+            <h1 className="font-heading text-2xl font-bold tracking-tight">Check your email</h1>
+            <FieldDescription>
+              We sent a verification link to <strong>{verifyEmail}</strong>. Verify your address to
+              keep the password you just set — signing in with an email code before you verify
+              clears it.
+            </FieldDescription>
+          </div>
+          <Field>
+            <Button type="button" onClick={() => void navigate({ to: "/" })}>
+              Continue
+            </Button>
+          </Field>
+        </FieldGroup>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("flex flex-col gap-5", className)} {...props}>
@@ -70,7 +115,28 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
                   onBlur={field.handleBlur}
                   aria-invalid={field.state.meta.errors.length > 0}
                 />
-                <FieldError errors={field.state.meta.errors.map(e => ({ message: String(e) }))} />
+                <FieldError errors={field.state.meta.errors} />
+              </Field>
+            )}
+          </form.Field>
+
+          <form.Field name="password">
+            {field => (
+              <Field>
+                <FieldLabel htmlFor="password">Password</FieldLabel>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={field.state.value}
+                  onChange={e => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  aria-invalid={field.state.meta.errors.length > 0}
+                />
+                <FieldError errors={field.state.meta.errors} />
+                <FieldDescription>
+                  At least 8 characters, including a number and a symbol.
+                </FieldDescription>
               </Field>
             )}
           </form.Field>
@@ -81,7 +147,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
             {isSubmitting => (
               <Field>
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Sending code..." : "Create account"}
+                  {isSubmitting ? "Creating account..." : "Create account"}
                 </Button>
               </Field>
             )}
@@ -89,7 +155,15 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
 
           <FieldSeparator>Or</FieldSeparator>
 
-          <Field>
+          <Field className="grid gap-3">
+            <Button
+              variant="outline"
+              type="button"
+              disabled={otpLoading}
+              onClick={() => void handleOtpSignUp()}
+            >
+              {otpLoading ? "Sending code..." : "Sign up with an email code"}
+            </Button>
             <Button
               variant="outline"
               type="button"

@@ -6,11 +6,11 @@ A production-ready full-stack web application template **opinionated towards [Bu
 
 - **SSR & Routing**: [TanStack Start](https://tanstack.com/start) with file-based routes and type-safe navigation.
 - **Server Engine**: [Nitro](https://nitro.unjs.io/) for high-performance server-side logic.
-- **Authentication**: [Better Auth](https://better-auth.com/) — email OTP, passkeys, and optional Google OAuth. Rate limited (20 req/60 s). Session-guarded protected routes and redirect logic included.
+- **Authentication**: [Better Auth](https://better-auth.com/) — email + password (with reset and verification emails), email OTP, passkeys, and optional Google OAuth. Rate limited (20 req/60 s). Session-guarded protected routes and redirect logic included.
 - **Database**: [Drizzle ORM](https://orm.drizzle.team/) with Bun's native SQL driver (`bun:sql` / `drizzle-orm/bun-sql`) for zero-dependency, high-performance PostgreSQL access.
 - **Account management**: `/settings` route — profile, linked providers, passkeys, and account deletion via Better Auth.
 - **File uploads**: Bun-native S3 client (`Bun.s3`) generating presigned PUT upload URLs for S3-compatible storage (MinIO locally; swap to AWS S3, Cloudflare R2, or Supabase Storage with an env var change).
-- **Email**: Transactional email with [Resend](https://resend.com/) and [React Email](https://react.email/). OTP and verification templates included. Auth-guarded dispatch endpoint.
+- **Email**: Transactional email with [Resend](https://resend.com/) and [React Email](https://react.email/). OTP, verification, and password-reset templates included. Auth-guarded dispatch endpoint.
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) with a hyper-minimalist dark-first design system.
 - **Theme System**: Class-based light/dark switching via [next-themes](https://github.com/pacocoursey/next-themes).
 - **Observability**: LogTape structured logging with a [Sentry](https://sentry.io/) sink. PII off by default, conservative sample rate. Debug routes gated to development.
