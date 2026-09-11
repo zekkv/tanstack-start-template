@@ -2,12 +2,15 @@ name: Security Checks
 
 on:
   push:
+    branches: [main]
     paths-ignore:
       - "**.md"
       - "docs/**"
       - ".vscode/**"
       - ".idea/**"
   pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
     paths-ignore:
       - "**.md"
       - "docs/**"
@@ -23,6 +26,7 @@ concurrency:
 jobs:
   gitleaks:
     name: Gitleaks
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -40,6 +44,7 @@ jobs:
 
   dependency-audit:
     name: Dependency audit
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -52,6 +57,7 @@ jobs:
 
   codeql:
     name: CodeQL
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

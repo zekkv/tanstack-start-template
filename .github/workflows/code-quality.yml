@@ -2,12 +2,15 @@ name: Code Quality
 
 on:
   push:
+    branches: [main]
     paths-ignore:
       - "**.md"
       - "docs/**"
       - ".vscode/**"
       - ".idea/**"
   pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
     paths-ignore:
       - "**.md"
       - "docs/**"
@@ -24,6 +27,7 @@ concurrency:
 jobs:
   code-quality:
     name: Lint and type check
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
