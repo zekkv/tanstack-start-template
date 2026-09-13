@@ -14,6 +14,7 @@ import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
 import { PasswordSchema } from "#/features/auth/schema/password";
+import { FormError } from "#/features/auth/components/form-error";
 import { useState } from "react";
 
 const schema = z.object({
@@ -23,15 +24,13 @@ const schema = z.object({
 
 export function SignupForm({ className, ...props }: React.ComponentProps<"div">) {
   const navigate = useNavigate();
-  const [serverError, setServerError] = useState<string | null>(null);
   const [otpLoading, setOtpLoading] = useState(false);
   const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
 
   const form = useForm({
     defaultValues: { email: "", password: "" },
     validators: { onSubmit: schema },
-    onSubmit: async ({ value }) => {
-      setServerError(null);
+    onSubmit: async ({ value, formApi }) => {
       // ponytail: name is "" to match what the email-OTP flow stores; add a field if profiles need one.
       const { error } = await authClient.signUp.email({
         name: "",
@@ -39,7 +38,12 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
         password: value.password,
       });
       if (error) {
-        setServerError(error.message ?? "Could not create your account. Try again.");
+        formApi.setErrorMap({
+          onSubmit: {
+            form: error.message ?? "Could not create your account. Try again.",
+            fields: {},
+          },
+        });
         return;
       }
       setVerifyEmail(value.email);
@@ -47,17 +51,20 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
   });
 
   const handleOtpSignUp = async () => {
-    setServerError(null);
     const email = form.getFieldValue("email");
     if (!z.email().safeParse(email).success) {
-      setServerError("Enter a valid email address to receive a code.");
+      form.setErrorMap({
+        onSubmit: { form: "Enter a valid email address to receive a code.", fields: {} },
+      });
       return;
     }
     setOtpLoading(true);
     const { error } = await authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
     setOtpLoading(false);
     if (error) {
-      setServerError(error.message ?? "Failed to send code. Try again.");
+      form.setErrorMap({
+        onSubmit: { form: error.message ?? "Failed to send code. Try again.", fields: {} },
+      });
       return;
     }
     await navigate({ to: "/verify-otp", search: { email, flow: "sign-up" } });
@@ -141,7 +148,9 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
             )}
           </form.Field>
 
-          {serverError && <FieldError>{serverError}</FieldError>}
+          <form.Subscribe selector={s => s.errorMap.onSubmit}>
+            {formError => <FormError error={formError} />}
+          </form.Subscribe>
 
           <form.Subscribe selector={s => s.isSubmitting}>
             {isSubmitting => (

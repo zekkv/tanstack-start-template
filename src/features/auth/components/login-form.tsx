@@ -13,6 +13,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
+import { FormError } from "#/features/auth/components/form-error";
 import { useEffect, useState } from "react";
 
 const schema = z.object({
@@ -22,21 +23,21 @@ const schema = z.object({
 
 export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
   const navigate = useNavigate();
-  const [serverError, setServerError] = useState<string | null>(null);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
 
   const handlePasskeySignIn = async () => {
-    setServerError(null);
     setPasskeyLoading(true);
     const result = await authClient.signIn.passkey({
       fetchOptions: {
         onSuccess: () => navigate({ to: "/" }),
-        onError: ctx => setServerError(ctx.error.message),
+        onError: ctx => form.setErrorMap({ onSubmit: { form: ctx.error.message, fields: {} } }),
       },
     });
     if (result.error) {
-      setServerError(result.error.message ?? "Passkey sign-in failed.");
+      form.setErrorMap({
+        onSubmit: { form: result.error.message ?? "Passkey sign-in failed.", fields: {} },
+      });
     }
     setPasskeyLoading(false);
   };
@@ -57,14 +58,15 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
   const form = useForm({
     defaultValues: { email: "", password: "" },
     validators: { onSubmit: schema },
-    onSubmit: async ({ value }) => {
-      setServerError(null);
+    onSubmit: async ({ value, formApi }) => {
       const { error } = await authClient.signIn.email({
         email: value.email,
         password: value.password,
       });
       if (error) {
-        setServerError(error.message ?? "Invalid email or password.");
+        formApi.setErrorMap({
+          onSubmit: { form: error.message ?? "Invalid email or password.", fields: {} },
+        });
         return;
       }
       await navigate({ to: "/" });
@@ -72,17 +74,20 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
   });
 
   const handleOtpSignIn = async () => {
-    setServerError(null);
     const email = form.getFieldValue("email");
     if (!z.email().safeParse(email).success) {
-      setServerError("Enter a valid email address to receive a code.");
+      form.setErrorMap({
+        onSubmit: { form: "Enter a valid email address to receive a code.", fields: {} },
+      });
       return;
     }
     setOtpLoading(true);
     const { error } = await authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
     setOtpLoading(false);
     if (error) {
-      setServerError(error.message ?? "Failed to send code. Try again.");
+      form.setErrorMap({
+        onSubmit: { form: error.message ?? "Failed to send code. Try again.", fields: {} },
+      });
       return;
     }
     await navigate({ to: "/verify-otp", search: { email, flow: "sign-in" } });
@@ -144,7 +149,9 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
             )}
           </form.Field>
 
-          {serverError && <FieldError>{serverError}</FieldError>}
+          <form.Subscribe selector={s => s.errorMap.onSubmit}>
+            {formError => <FormError error={formError} />}
+          </form.Subscribe>
 
           <form.Subscribe selector={s => s.isSubmitting}>
             {isSubmitting => (

@@ -6,6 +6,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
+import { FormError } from "#/features/auth/components/form-error";
 import { useState } from "react";
 
 const schema = z.object({
@@ -19,21 +20,20 @@ interface VerifyOtpFormProps extends Omit<React.ComponentProps<"div">, "children
 
 export function VerifyOtpForm({ email, flow, className, ...props }: VerifyOtpFormProps) {
   const navigate = useNavigate();
-  const [serverError, setServerError] = useState<string | null>(null);
   const [showPasskeyPrompt, setShowPasskeyPrompt] = useState(false);
-  const [passkeyError, setPasskeyError] = useState<string | null>(null);
 
   const form = useForm({
     defaultValues: { otp: "" },
     validators: { onSubmit: schema },
-    onSubmit: async ({ value }) => {
-      setServerError(null);
+    onSubmit: async ({ value, formApi }) => {
       const { error } = await authClient.signIn.emailOtp({
         email,
         otp: value.otp,
       });
       if (error) {
-        setServerError(error.message ?? "Invalid or expired code. Try again.");
+        formApi.setErrorMap({
+          onSubmit: { form: error.message ?? "Invalid or expired code. Try again.", fields: {} },
+        });
         return;
       }
       if (flow === "sign-up") {
@@ -46,20 +46,28 @@ export function VerifyOtpForm({ email, flow, className, ...props }: VerifyOtpFor
 
   if (showPasskeyPrompt) {
     return (
-      <PasskeyPrompt
-        email={email}
-        error={passkeyError}
-        onRegister={async () => {
-          setPasskeyError(null);
-          const result = await authClient.passkey.addPasskey({ name: email });
-          if (result.error) {
-            setPasskeyError(result.error.message ?? "Failed to set up passkey.");
-            return;
-          }
-          await navigate({ to: "/" });
-        }}
-        onSkip={() => void navigate({ to: "/" })}
-      />
+      <form.Subscribe selector={s => s.errorMap.onSubmit}>
+        {formError => (
+          <PasskeyPrompt
+            email={email}
+            error={formError}
+            onRegister={async () => {
+              const result = await authClient.passkey.addPasskey({ name: email });
+              if (result.error) {
+                form.setErrorMap({
+                  onSubmit: {
+                    form: result.error.message ?? "Failed to set up passkey.",
+                    fields: {},
+                  },
+                });
+                return;
+              }
+              await navigate({ to: "/" });
+            }}
+            onSkip={() => void navigate({ to: "/" })}
+          />
+        )}
+      </form.Subscribe>
     );
   }
 
@@ -104,7 +112,9 @@ export function VerifyOtpForm({ email, flow, className, ...props }: VerifyOtpFor
             )}
           </form.Field>
 
-          {serverError && <FieldError>{serverError}</FieldError>}
+          <form.Subscribe selector={s => s.errorMap.onSubmit}>
+            {formError => <FormError error={formError} />}
+          </form.Subscribe>
 
           <form.Subscribe selector={s => s.isSubmitting}>
             {isSubmitting => (
@@ -132,7 +142,7 @@ function PasskeyPrompt({
   onSkip,
 }: {
   email: string;
-  error: string | null;
+  error: unknown;
   onRegister: () => Promise<void>;
   onSkip: () => void;
 }) {
@@ -154,7 +164,7 @@ function PasskeyPrompt({
           </FieldDescription>
         </div>
 
-        {error && <FieldError>{error}</FieldError>}
+        <FormError error={error} />
 
         <Field>
           <Button type="button" disabled={loading} onClick={() => void handleRegister()}>

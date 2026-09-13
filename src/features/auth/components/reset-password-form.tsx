@@ -6,6 +6,7 @@ import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
 import { PasswordSchema } from "#/features/auth/schema/password";
+import { FormError } from "#/features/auth/components/form-error";
 import { useState } from "react";
 
 /**
@@ -17,20 +18,20 @@ export function ResetPasswordForm({ token, error }: { token?: string; error?: st
 }
 
 function RequestReset({ expired }: { expired: boolean }) {
-  const [serverError, setServerError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
 
   const form = useForm({
     defaultValues: { email: "" },
     validators: { onSubmit: z.object({ email: z.email("Enter a valid email address") }) },
-    onSubmit: async ({ value }) => {
-      setServerError(null);
+    onSubmit: async ({ value, formApi }) => {
       const { error } = await authClient.requestPasswordReset({
         email: value.email,
         redirectTo: "/reset-password",
       });
       if (error) {
-        setServerError(error.message ?? "Failed to send reset link. Try again.");
+        formApi.setErrorMap({
+          onSubmit: { form: error.message ?? "Failed to send reset link. Try again.", fields: {} },
+        });
         return;
       }
       setSent(true);
@@ -90,7 +91,9 @@ function RequestReset({ expired }: { expired: boolean }) {
           )}
         </form.Field>
 
-        {serverError && <FieldError>{serverError}</FieldError>}
+        <form.Subscribe selector={s => s.errorMap.onSubmit}>
+          {formError => <FormError error={formError} />}
+        </form.Subscribe>
 
         <form.Subscribe selector={s => s.isSubmitting}>
           {isSubmitting => (
@@ -112,16 +115,19 @@ function RequestReset({ expired }: { expired: boolean }) {
 
 function SetNewPassword({ token }: { token: string }) {
   const navigate = useNavigate();
-  const [serverError, setServerError] = useState<string | null>(null);
 
   const form = useForm({
     defaultValues: { password: "" },
     validators: { onSubmit: z.object({ password: PasswordSchema }) },
-    onSubmit: async ({ value }) => {
-      setServerError(null);
+    onSubmit: async ({ value, formApi }) => {
       const { error } = await authClient.resetPassword({ newPassword: value.password, token });
       if (error) {
-        setServerError(error.message ?? "Could not reset your password. Request a new link.");
+        formApi.setErrorMap({
+          onSubmit: {
+            form: error.message ?? "Could not reset your password. Request a new link.",
+            fields: {},
+          },
+        });
         return;
       }
       // resetPassword does not create a session, so send them through sign-in.
@@ -163,7 +169,9 @@ function SetNewPassword({ token }: { token: string }) {
           )}
         </form.Field>
 
-        {serverError && <FieldError>{serverError}</FieldError>}
+        <form.Subscribe selector={s => s.errorMap.onSubmit}>
+          {formError => <FormError error={formError} />}
+        </form.Subscribe>
 
         <form.Subscribe selector={s => s.isSubmitting}>
           {isSubmitting => (
