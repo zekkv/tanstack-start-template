@@ -1,29 +1,19 @@
-import { createFileRoute, redirect, useRouter, Link } from "@tanstack/react-router";
+import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
 import { Trash2, Plus, Upload, CheckCircle } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 
-import { getCurrentUser } from "#/features/auth/session";
 import { listNotes, createNote, deleteNote } from "#/features/notes/server-fns";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { createSeoHead } from "#/lib/seo";
 
-export const Route = createFileRoute("/dashboard")({
+export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () =>
     createSeoHead({
       title: "Dashboard — TanStack Start Template",
       noindex: true,
     }),
-  beforeLoad: async () => {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw redirect({ to: "/login" });
-    }
-
-    return { user };
-  },
   loader: async () => {
     const notes = await listNotes();
     return { notes };

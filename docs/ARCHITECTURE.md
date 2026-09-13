@@ -48,13 +48,15 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 │   │   └── utils.ts
 │   ├── routes/           # TanStack Router routes and API handlers
 │   │   ├── __root.tsx    # App shell
+│   │   ├── _authenticated.tsx # Pathless layout route guarding authenticated pages
+│   │   ├── _authenticated/
+│   │   │   ├── dashboard.tsx # Protected route — notes CRUD, upload widget
+│   │   │   └── settings.tsx  # Protected route — profile, providers, passkeys, delete account
 │   │   ├── index.tsx     # Landing page
 │   │   ├── login.tsx     # Auth route — redirects signed-in users
 │   │   ├── signup.tsx    # Auth route — redirects signed-in users
 │   │   ├── verify-otp.tsx
 │   │   ├── reset-password.tsx # Request a reset link, or set a new password with ?token=
-│   │   ├── dashboard.tsx # Protected route — notes CRUD, upload widget
-│   │   ├── settings.tsx  # Protected route — profile, providers, passkeys, delete account
 │   │   ├── sentry-example.tsx # Dev only
 │   │   ├── robots[.]txt.ts   # Plain text crawler directives
 │   │   ├── sitemap[.]xml.ts  # XML sitemap
@@ -76,7 +78,7 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 
 1. **Routing**: Managed by TanStack Router. `src/routes/__root.tsx` composes the shell, theme provider, header, and page outlet.
 2. **SSR**: TanStack Start handles the initial HTML render on the server via Nitro.
-3. **Protected routes**: `dashboard.tsx` and `settings.tsx` call `getCurrentUser()` in `beforeLoad`. Unauthenticated requests redirect to `/login`. Auth routes (`/login`, `/signup`) redirect already-signed-in users to `/dashboard`.
+3. **Protected routes**: Handled via the pathless `_authenticated.tsx` layout route which calls `getCurrentUser()` in `beforeLoad`. Unauthenticated requests redirect to `/login`, while authenticated requests inject `{ user }` into the route context for child routes (`dashboard.tsx`, `settings.tsx`). Auth routes (`/login`, `/signup`) redirect already-signed-in users to `/dashboard`.
 4. **Server functions**: `src/features/notes/server-fns.ts` exposes `listNotes`, `createNote`, and `deleteNote` via `createServerFn`. Each function re-checks the session server-side.
 5. **Auth flow**: Forms in `src/features/auth/components/*` call `src/lib/auth-client.ts`. `/login` supports email + password, email OTP, passkeys, and Google OAuth (when configured). `/signup` creates a password account (then holds the user on a "check your email" prompt) or sends an OTP; `/verify-otp` confirms the code and offers passkey enrollment; `/reset-password` both requests a reset link and consumes it (`?token=`).
 6. **File uploads**: `src/routes/api/upload-url.ts` generates a presigned PUT URL (S3-compatible). The client uploads directly to storage; the server never proxies file bytes.

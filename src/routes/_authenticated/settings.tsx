@@ -1,11 +1,10 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Trash2, KeyRound, Link } from "lucide-react";
 import type { Passkey } from "@better-auth/passkey";
 import { toast } from "sonner";
 
-import { getCurrentUser } from "#/features/auth/session";
 import { authClient } from "#/lib/auth-client";
 import { Button } from "#/components/ui/button";
 import { createSeoHead } from "#/lib/seo";
@@ -20,21 +19,12 @@ function getProviderLabel(providerId: string) {
   return PROVIDER_LABELS[providerId] ?? providerId.charAt(0).toUpperCase() + providerId.slice(1);
 }
 
-export const Route = createFileRoute("/settings")({
+export const Route = createFileRoute("/_authenticated/settings")({
   head: () =>
     createSeoHead({
       title: "Settings — TanStack Start Template",
       noindex: true,
     }),
-  beforeLoad: async () => {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw redirect({ to: "/login" });
-    }
-
-    return { user };
-  },
   component: SettingsPage,
 });
 
