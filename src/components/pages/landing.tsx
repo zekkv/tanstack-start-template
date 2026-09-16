@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
+import { Page } from "#/components/custom/page";
 
 const REPO_URL = "https://github.com/zek01svg/tanstack-start-template";
 const DOCS_URL = "https://tanstack.com/start/latest/docs/framework/react/overview";
@@ -39,7 +40,7 @@ const ALSO_INCLUDED = [
 
 export function LandingPage() {
   return (
-    <main className="mx-auto max-w-4xl px-6">
+    <Page className="py-0">
       <HeroSection />
       <ContentsSection />
       <footer className="mt-24 flex flex-col gap-4 border-t border-border py-8 font-mono text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
@@ -63,7 +64,7 @@ export function LandingPage() {
           </a>
         </nav>
       </footer>
-    </main>
+    </Page>
   );
 }
 

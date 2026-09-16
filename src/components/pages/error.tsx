@@ -1,4 +1,5 @@
 import { cn } from "cn";
+import { Page } from "#/components/custom/page";
 
 interface ErrorPageProps {
   error: unknown;
@@ -16,13 +17,10 @@ export function ErrorPage({
   const message = error instanceof Error ? error.message : String(error);
 
   return (
-    <div
-      className={cn(
-        "mx-auto flex min-h-[70vh] w-full max-w-md flex-col items-center justify-center px-6 py-16",
-        className
-      )}
+    <Page
+      className={cn("flex min-h-[70vh] max-w-md flex-col items-center justify-center", className)}
     >
-      <main className="w-full space-y-8 animate-in fade-in duration-500">
+      <div className="w-full space-y-8 animate-in fade-in duration-500">
         <div className="space-y-3">
           <p className="font-mono text-xs tracking-[0.2em] text-muted-foreground uppercase">
             Error
@@ -53,7 +51,7 @@ export function ErrorPage({
             Back to home
           </a>
         </div>
-      </main>
-    </div>
+      </div>
+    </Page>
   );
 }
