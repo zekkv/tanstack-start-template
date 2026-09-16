@@ -7,6 +7,7 @@ import { useForm } from "@tanstack/react-form-start";
 import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
 import { FormError } from "#/features/auth/components/form-error";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
 const schema = z.object({
@@ -44,6 +45,15 @@ export function VerifyOtpForm({ email, flow, className, ...props }: VerifyOtpFor
     },
   });
 
+  const registerPasskey = useMutation({
+    mutationFn: async () => {
+      const result = await authClient.passkey.addPasskey({ name: email });
+      if (result.error) throw new Error(result.error.message ?? "Failed to set up passkey.");
+    },
+    onSuccess: () => navigate({ to: "/" }),
+    onError: error => form.setErrorMap({ onSubmit: { form: error.message, fields: {} } }),
+  });
+
   if (showPasskeyPrompt) {
     return (
       <form.Subscribe selector={s => s.errorMap.onSubmit}>
@@ -51,19 +61,8 @@ export function VerifyOtpForm({ email, flow, className, ...props }: VerifyOtpFor
           <PasskeyPrompt
             email={email}
             error={formError}
-            onRegister={async () => {
-              const result = await authClient.passkey.addPasskey({ name: email });
-              if (result.error) {
-                form.setErrorMap({
-                  onSubmit: {
-                    form: result.error.message ?? "Failed to set up passkey.",
-                    fields: {},
-                  },
-                });
-                return;
-              }
-              await navigate({ to: "/" });
-            }}
+            loading={registerPasskey.isPending}
+            onRegister={() => registerPasskey.mutate()}
             onSkip={() => void navigate({ to: "/" })}
           />
         )}
@@ -138,22 +137,16 @@ export function VerifyOtpForm({ email, flow, className, ...props }: VerifyOtpFor
 function PasskeyPrompt({
   email,
   error,
+  loading,
   onRegister,
   onSkip,
 }: {
   email: string;
   error: unknown;
-  onRegister: () => Promise<void>;
+  loading: boolean;
+  onRegister: () => void;
   onSkip: () => void;
 }) {
-  const [loading, setLoading] = useState(false);
-
-  const handleRegister = async () => {
-    setLoading(true);
-    await onRegister();
-    setLoading(false);
-  };
-
   return (
     <div className="flex flex-col gap-5">
       <FieldGroup className="gap-5">
@@ -167,7 +160,7 @@ function PasskeyPrompt({
         <FormError error={error} />
 
         <Field>
-          <Button type="button" disabled={loading} onClick={() => void handleRegister()}>
+          <Button type="button" disabled={loading} onClick={onRegister}>
             {loading ? "Setting up..." : "Set up passkey"}
           </Button>
         </Field>

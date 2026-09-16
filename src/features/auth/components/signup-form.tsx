@@ -15,6 +15,7 @@ import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
 import { PasswordSchema } from "#/features/auth/schema/password";
 import { FormError } from "#/features/auth/components/form-error";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
 const schema = z.object({
@@ -24,7 +25,6 @@ const schema = z.object({
 
 export function SignupForm({ className, ...props }: React.ComponentProps<"div">) {
   const navigate = useNavigate();
-  const [otpLoading, setOtpLoading] = useState(false);
   const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
 
   const form = useForm({
@@ -50,25 +50,20 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
     },
   });
 
-  const handleOtpSignUp = async () => {
-    const email = form.getFieldValue("email");
-    if (!z.email().safeParse(email).success) {
-      form.setErrorMap({
-        onSubmit: { form: "Enter a valid email address to receive a code.", fields: {} },
-      });
-      return;
-    }
-    setOtpLoading(true);
-    const { error } = await authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
-    setOtpLoading(false);
-    if (error) {
-      form.setErrorMap({
-        onSubmit: { form: error.message ?? "Failed to send code. Try again.", fields: {} },
-      });
-      return;
-    }
-    await navigate({ to: "/verify-otp", search: { email, flow: "sign-up" } });
-  };
+  const sendSignupCode = useMutation({
+    mutationFn: async (email: string) => {
+      if (!z.email().safeParse(email).success) {
+        throw new Error("Enter a valid email address to receive a code.");
+      }
+      const { error } = await authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
+      if (error) throw new Error(error.message ?? "Failed to send code. Try again.");
+    },
+    onSuccess: (_data, email) =>
+      navigate({ to: "/verify-otp", search: { email, flow: "sign-up" } }),
+    onError: error => form.setErrorMap({ onSubmit: { form: error.message, fields: {} } }),
+  });
+
+  const handleOtpSignUp = () => sendSignupCode.mutate(form.getFieldValue("email"));
 
   if (verifyEmail) {
     return (
@@ -168,10 +163,10 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
             <Button
               variant="outline"
               type="button"
-              disabled={otpLoading}
-              onClick={() => void handleOtpSignUp()}
+              disabled={sendSignupCode.isPending}
+              onClick={handleOtpSignUp}
             >
-              {otpLoading ? "Sending code..." : "Sign up with an email code"}
+              {sendSignupCode.isPending ? "Sending code..." : "Sign up with an email code"}
             </Button>
             <Button
               variant="outline"

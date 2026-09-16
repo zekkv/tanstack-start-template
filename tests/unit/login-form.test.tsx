@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LoginForm } from "#/features/auth/components/login-form";
 
 // Mock TanStack Router hooks and components
@@ -41,9 +42,17 @@ if (typeof globalThis.PublicKeyCredential === "undefined") {
   };
 }
 
+function renderForm() {
+  return render(
+    <QueryClientProvider client={new QueryClient()}>
+      <LoginForm />
+    </QueryClientProvider>
+  );
+}
+
 describe("LoginForm component", () => {
   it("renders email and password inputs plus submission controls", () => {
-    render(<LoginForm />);
+    renderForm();
 
     expect(screen.getByText("Welcome back")).toBeTruthy();
     expect(screen.getByLabelText(/email/i)).toBeTruthy();
@@ -54,7 +63,7 @@ describe("LoginForm component", () => {
   });
 
   it("shows validation error for invalid email on submit", async () => {
-    render(<LoginForm />);
+    renderForm();
 
     const emailInput = screen.getByLabelText(/email/i);
     fireEvent.change(emailInput, { target: { value: "not-an-email" } });
@@ -72,7 +81,7 @@ describe("LoginForm component", () => {
   it("signs in with email and password", async () => {
     const { authClient } = await import("#/lib/auth-client");
     const user = userEvent.setup();
-    render(<LoginForm />);
+    renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "test@example.com");
     await user.type(screen.getByLabelText(/password/i), "correct-horse");
@@ -94,7 +103,7 @@ describe("LoginForm component", () => {
     });
 
     const user = userEvent.setup();
-    render(<LoginForm />);
+    renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "test@example.com");
     await user.type(screen.getByLabelText(/password/i), "wrong-password");
@@ -108,7 +117,7 @@ describe("LoginForm component", () => {
   it("calls sendVerificationOtp when requesting a sign-in code", async () => {
     const { authClient } = await import("#/lib/auth-client");
     const user = userEvent.setup();
-    render(<LoginForm />);
+    renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "test@example.com");
     await user.click(screen.getByRole("button", { name: /email me a sign-in code/i }));
@@ -125,7 +134,7 @@ describe("LoginForm component", () => {
     const { authClient } = await import("#/lib/auth-client");
     vi.mocked(authClient.emailOtp.sendVerificationOtp).mockClear();
     const user = userEvent.setup();
-    render(<LoginForm />);
+    renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "nope");
     await user.click(screen.getByRole("button", { name: /email me a sign-in code/i }));
@@ -134,5 +143,27 @@ describe("LoginForm component", () => {
       expect(screen.getByText(/enter a valid email address to receive a code/i)).toBeTruthy();
     });
     expect(authClient.emailOtp.sendVerificationOtp).not.toHaveBeenCalled();
+  });
+
+  it("displays server error when requesting a sign-in code fails", async () => {
+    const { authClient } = await import("#/lib/auth-client");
+    vi.mocked(authClient.emailOtp.sendVerificationOtp).mockResolvedValueOnce({
+      data: null,
+      error: {
+        message: "Too many requests",
+        status: 429,
+        statusText: "Too Many Requests",
+      } as never,
+    });
+
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.type(screen.getByLabelText(/email/i), "test@example.com");
+    await user.click(screen.getByRole("button", { name: /email me a sign-in code/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Too many requests")).toBeTruthy();
+    });
   });
 });

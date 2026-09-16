@@ -11,7 +11,9 @@ import { routeTree } from "./routeTree.gen";
 import { env } from "./env";
 
 export function getRouter() {
-  const queryClient = new QueryClient();
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { staleTime: 30_000 } },
+  });
   const context = { queryClient };
 
   const router = createTanStackRouter({

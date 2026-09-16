@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { authClient } from "#/lib/auth-client";
 import { Button } from "#/components/ui/button";
@@ -7,19 +8,16 @@ import { ThemeToggle } from "../ui/theme-toggle";
 
 export function Header() {
   const { data: session } = authClient.useSession();
-  const [signingOut, setSigningOut] = useState(false);
-
-  const handleSignOut = async () => {
-    setSigningOut(true);
-    await authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          window.location.href = "/";
-        },
-      },
-    });
-    setSigningOut(false);
-  };
+  const signOut = useMutation({
+    mutationFn: async () => {
+      const { error } = await authClient.signOut();
+      if (error) throw new Error(error.message ?? "Failed to sign out");
+    },
+    onSuccess: () => {
+      window.location.href = "/";
+    },
+    onError: error => toast.error(error.message),
+  });
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background">
@@ -45,8 +43,8 @@ export function Header() {
               type="button"
               variant="ghost"
               size="sm"
-              disabled={signingOut}
-              onClick={() => void handleSignOut()}
+              disabled={signOut.isPending}
+              onClick={() => signOut.mutate()}
             >
               Sign out
             </Button>

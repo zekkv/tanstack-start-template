@@ -14,7 +14,8 @@ import { useForm } from "@tanstack/react-form-start";
 import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
 import { FormError } from "#/features/auth/components/form-error";
-import { useEffect, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 const schema = z.object({
   email: z.email("Enter a valid email address"),
@@ -23,24 +24,6 @@ const schema = z.object({
 
 export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
   const navigate = useNavigate();
-  const [passkeyLoading, setPasskeyLoading] = useState(false);
-  const [otpLoading, setOtpLoading] = useState(false);
-
-  const handlePasskeySignIn = async () => {
-    setPasskeyLoading(true);
-    const result = await authClient.signIn.passkey({
-      fetchOptions: {
-        onSuccess: () => navigate({ to: "/" }),
-        onError: ctx => form.setErrorMap({ onSubmit: { form: ctx.error.message, fields: {} } }),
-      },
-    });
-    if (result.error) {
-      form.setErrorMap({
-        onSubmit: { form: result.error.message ?? "Passkey sign-in failed.", fields: {} },
-      });
-    }
-    setPasskeyLoading(false);
-  };
 
   useEffect(() => {
     void (async () => {
@@ -73,25 +56,29 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
     },
   });
 
-  const handleOtpSignIn = async () => {
-    const email = form.getFieldValue("email");
-    if (!z.email().safeParse(email).success) {
-      form.setErrorMap({
-        onSubmit: { form: "Enter a valid email address to receive a code.", fields: {} },
-      });
-      return;
-    }
-    setOtpLoading(true);
-    const { error } = await authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
-    setOtpLoading(false);
-    if (error) {
-      form.setErrorMap({
-        onSubmit: { form: error.message ?? "Failed to send code. Try again.", fields: {} },
-      });
-      return;
-    }
-    await navigate({ to: "/verify-otp", search: { email, flow: "sign-in" } });
-  };
+  const passkeySignIn = useMutation({
+    mutationFn: async () => {
+      const { error } = await authClient.signIn.passkey();
+      if (error) throw new Error(error.message ?? "Passkey sign-in failed.");
+    },
+    onSuccess: () => navigate({ to: "/" }),
+    onError: error => form.setErrorMap({ onSubmit: { form: error.message, fields: {} } }),
+  });
+
+  const sendSignInCode = useMutation({
+    mutationFn: async (email: string) => {
+      if (!z.email().safeParse(email).success) {
+        throw new Error("Enter a valid email address to receive a code.");
+      }
+      const { error } = await authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
+      if (error) throw new Error(error.message ?? "Failed to send code. Try again.");
+    },
+    onSuccess: (_data, email) =>
+      navigate({ to: "/verify-otp", search: { email, flow: "sign-in" } }),
+    onError: error => form.setErrorMap({ onSubmit: { form: error.message, fields: {} } }),
+  });
+
+  const handleOtpSignIn = () => sendSignInCode.mutate(form.getFieldValue("email"));
 
   return (
     <div className={cn("flex flex-col gap-5", className)} {...props}>
@@ -169,18 +156,18 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
             <Button
               variant="outline"
               type="button"
-              disabled={otpLoading}
-              onClick={() => void handleOtpSignIn()}
+              disabled={sendSignInCode.isPending}
+              onClick={handleOtpSignIn}
             >
-              {otpLoading ? "Sending code..." : "Email me a sign-in code"}
+              {sendSignInCode.isPending ? "Sending code..." : "Email me a sign-in code"}
             </Button>
             <Button
               variant="outline"
               type="button"
-              disabled={passkeyLoading}
-              onClick={() => void handlePasskeySignIn()}
+              disabled={passkeySignIn.isPending}
+              onClick={() => passkeySignIn.mutate()}
             >
-              {passkeyLoading ? "Waiting..." : "Sign in with passkey"}
+              {passkeySignIn.isPending ? "Waiting..." : "Sign in with passkey"}
             </Button>
             <Button
               variant="outline"

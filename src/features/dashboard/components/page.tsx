@@ -1,4 +1,5 @@
 import { getRouteApi, useRouter, Link } from "@tanstack/react-router";
+import { useMutation } from "@tanstack/react-query";
 import { Trash2, Plus, Upload, CheckCircle } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
@@ -16,35 +17,21 @@ export function DashboardPage() {
   const router = useRouter();
 
   const [newTitle, setNewTitle] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  async function handleDeleteNote(id: number) {
-    setDeletingId(id);
-    try {
-      await deleteNote({ data: { id } });
-      await router.invalidate();
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete note");
-    } finally {
-      setDeletingId(null);
-    }
-  }
-
-  async function handleCreateNote(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newTitle.trim()) return;
-    setCreating(true);
-    try {
-      await createNote({ data: { title: newTitle } });
+  const createNoteMutation = useMutation({
+    mutationFn: (title: string) => createNote({ data: { title } }),
+    onSuccess: async () => {
       setNewTitle("");
       await router.invalidate();
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to create note");
-    } finally {
-      setCreating(false);
-    }
-  }
+    },
+    onError: error => toast.error(error.message || "Failed to create note"),
+  });
+
+  const deleteNoteMutation = useMutation({
+    mutationFn: (id: number) => deleteNote({ data: { id } }),
+    onSuccess: () => router.invalidate(),
+    onError: error => toast.error(error.message || "Failed to delete note"),
+  });
 
   return (
     <Page
@@ -79,14 +66,24 @@ export function DashboardPage() {
             <h2 className="text-lg font-semibold">Notes</h2>
           </div>
 
-          <form onSubmit={e => void handleCreateNote(e)} className="mt-4 flex gap-2">
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              createNoteMutation.mutate(newTitle);
+            }}
+            className="mt-4 flex gap-2"
+          >
             <Input
               placeholder="New note title…"
               value={newTitle}
               onChange={e => setNewTitle(e.target.value)}
               className="flex-1"
             />
-            <Button type="submit" disabled={creating || !newTitle.trim()} size="sm">
+            <Button
+              type="submit"
+              disabled={createNoteMutation.isPending || !newTitle.trim()}
+              size="sm"
+            >
               <Plus className="size-4" />
               Add
             </Button>
@@ -132,10 +129,12 @@ export function DashboardPage() {
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        disabled={deletingId === note.id}
+                        disabled={
+                          deleteNoteMutation.isPending && deleteNoteMutation.variables === note.id
+                        }
                         aria-label={`Delete note: ${note.title}`}
                         className="text-destructive hover:text-destructive"
-                        onClick={() => void handleDeleteNote(note.id)}
+                        onClick={() => deleteNoteMutation.mutate(note.id)}
                       >
                         <Trash2 className="size-4" />
                       </Button>
@@ -164,18 +163,8 @@ export function DashboardPage() {
 
 function FileUploadCard() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [status, setStatus] = useState<"idle" | "uploading" | "done" | "error">("idle");
-  const [uploadedKey, setUploadedKey] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setStatus("uploading");
-    setErrorMsg(null);
-
-    try {
+  const upload = useMutation({
+    mutationFn: async (file: File) => {
       const res = await fetch("/api/upload-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -204,15 +193,12 @@ function FileUploadCard() {
       });
       if (!putRes.ok) throw new Error("Upload to storage failed");
 
-      setUploadedKey(key);
-      setStatus("done");
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Upload failed");
-      setStatus("error");
-    } finally {
+      return key;
+    },
+    onSettled: () => {
       if (inputRef.current) inputRef.current.value = "";
-    }
-  }
+    },
+  });
 
   return (
     <section className="mt-12" aria-label="File upload">
@@ -221,13 +207,13 @@ function FileUploadCard() {
         Presigned PUT upload via MinIO. Images and PDFs up to 10 MB.
       </p>
 
-      {status === "done" && uploadedKey ? (
+      {upload.status === "success" ? (
         <p className="mt-4 flex items-center gap-2 text-sm">
           <CheckCircle className="size-4" />
-          Uploaded: <code className="font-mono text-xs break-all">{uploadedKey}</code>
+          Uploaded: <code className="font-mono text-xs break-all">{upload.data}</code>
         </p>
-      ) : status === "error" ? (
-        <p className="mt-4 text-sm text-destructive">{errorMsg}</p>
+      ) : upload.status === "error" ? (
+        <p className="mt-4 text-sm text-destructive">{upload.error.message}</p>
       ) : null}
 
       <div className="mt-4">
@@ -236,17 +222,20 @@ function FileUploadCard() {
           type="file"
           accept="image/*,application/pdf,text/plain"
           className="hidden"
-          onChange={e => void handleFileChange(e)}
+          onChange={e => {
+            const file = e.target.files?.[0];
+            if (file) upload.mutate(file);
+          }}
         />
         <Button
           type="button"
           variant="outline"
           size="sm"
-          disabled={status === "uploading"}
+          disabled={upload.isPending}
           onClick={() => inputRef.current?.click()}
         >
           <Upload className="size-4" />
-          {status === "uploading" ? "Uploading…" : "Choose file"}
+          {upload.isPending ? "Uploading…" : "Choose file"}
         </Button>
       </div>
     </section>

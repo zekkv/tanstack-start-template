@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/tanstackstart-react";
 import { Header } from "#/components/layout/header";
 import { HeadContent, Scripts, createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import type { QueryClient } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ErrorPage } from "#/components/pages/error";
 import { Toaster } from "#/components/ui/sonner";
 import { ThemeProvider } from "#/components/providers/theme-provider";
@@ -90,6 +91,7 @@ function RootDocument({ children, meta }: { children: React.ReactNode; meta?: Re
         </ThemeProvider>
         <Scripts />
         <Toaster richColors />
+        <ReactQueryDevtools />
       </body>
     </html>
   );

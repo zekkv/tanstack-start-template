@@ -34,7 +34,7 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 │   │   ├── schema.ts     # notes table (with userId FK)
 │   │   └── auth-schema.ts# Better Auth tables
 │   ├── features/
-│   │   ├── auth/         # Session helpers and server fn, login/signup/OTP/reset forms
+│   │   ├── auth/         # Session/account server fns, query options, login/signup/OTP/reset forms
 │   │   ├── emails/       # Email templates
 │   │   └── notes/        # Notes server functions
 │   ├── lib/              # Shared integrations and utilities
@@ -80,8 +80,9 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 2. **SSR**: TanStack Start handles the initial HTML render on the server via Nitro.
 3. **Protected routes**: Handled via the pathless `_authenticated.tsx` layout route which calls `getCurrentUser()` in `beforeLoad`. Unauthenticated requests redirect to `/login`, while authenticated requests inject `{ user }` into the route context for child routes (`dashboard.tsx`, `settings.tsx`). Auth routes (`/login`, `/signup`) redirect already-signed-in users to `/dashboard`.
 4. **Server functions**: `src/features/notes/server-fns.ts` exposes `listNotes`, `createNote`, and `deleteNote` via `createServerFn`. Each function re-checks the session server-side.
-5. **Auth flow**: Forms in `src/features/auth/components/*` call `src/lib/auth-client.ts`. `/login` supports email + password, email OTP, passkeys, and Google OAuth (when configured). `/signup` creates a password account (then holds the user on a "check your email" prompt) or sends an OTP; `/verify-otp` confirms the code and offers passkey enrollment; `/reset-password` both requests a reset link and consumes it (`?token=`).
-6. **File uploads**: `src/routes/api/upload-url.ts` generates a presigned PUT URL (S3-compatible). The client uploads directly to storage; the server never proxies file bytes.
+5. **Query cache**: `src/router.tsx` creates one TanStack Query `QueryClient` per router (30s default `staleTime`) and `setupRouterSsrQueryIntegration` supplies the provider plus SSR dehydration/hydration. Route loaders prefetch with the same `queryOptions` objects their components read (`accountOptions` in `src/features/auth/accounts.ts`); mutations over loader-owned data call `router.invalidate()`.
+6. **Auth flow**: Forms in `src/features/auth/components/*` call `src/lib/auth-client.ts`. `/login` supports email + password, email OTP, passkeys, and Google OAuth (when configured). `/signup` creates a password account (then holds the user on a "check your email" prompt) or sends an OTP; `/verify-otp` confirms the code and offers passkey enrollment; `/reset-password` both requests a reset link and consumes it (`?token=`).
+7. **File uploads**: `src/routes/api/upload-url.ts` generates a presigned PUT URL (S3-compatible). The client uploads directly to storage; the server never proxies file bytes.
 
 ## Database & Migrations
 

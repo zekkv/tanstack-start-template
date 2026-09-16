@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SignupForm } from "#/features/auth/components/signup-form";
 
 const mockNavigate = vi.fn<() => void>();
@@ -32,9 +33,17 @@ vi.mock("#/lib/auth-client", () => ({
   },
 }));
 
+function renderForm() {
+  return render(
+    <QueryClientProvider client={new QueryClient()}>
+      <SignupForm />
+    </QueryClientProvider>
+  );
+}
+
 describe("SignupForm component", () => {
   it("renders email and password inputs, create account button, and Google OAuth button", () => {
-    render(<SignupForm />);
+    renderForm();
 
     expect(screen.getByText("Create an account")).toBeTruthy();
     expect(screen.getByLabelText(/email/i)).toBeTruthy();
@@ -45,7 +54,7 @@ describe("SignupForm component", () => {
   });
 
   it("shows validation error when submitting an invalid email", async () => {
-    render(<SignupForm />);
+    renderForm();
 
     const emailInput = screen.getByLabelText(/email/i);
     fireEvent.change(emailInput, { target: { value: "invalid-email" } });
@@ -64,7 +73,7 @@ describe("SignupForm component", () => {
     const { authClient } = await import("#/lib/auth-client");
     vi.mocked(authClient.signUp.email).mockClear();
     const user = userEvent.setup();
-    render(<SignupForm />);
+    renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "newuser@example.com");
     await user.type(screen.getByLabelText(/password/i), "short");
@@ -80,7 +89,7 @@ describe("SignupForm component", () => {
     const { authClient } = await import("#/lib/auth-client");
     vi.mocked(authClient.signUp.email).mockClear();
     const user = userEvent.setup();
-    render(<SignupForm />);
+    renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "newuser@example.com");
     await user.type(screen.getByLabelText(/password/i), "alllowercaseletters");
@@ -96,7 +105,7 @@ describe("SignupForm component", () => {
   it("creates an account with email and password", async () => {
     const { authClient } = await import("#/lib/auth-client");
     const user = userEvent.setup();
-    render(<SignupForm />);
+    renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "newuser@example.com");
     await user.type(screen.getByLabelText(/password/i), "long-enough-pass1!");
@@ -113,7 +122,7 @@ describe("SignupForm component", () => {
 
   it("tells the new user to verify their email instead of navigating away", async () => {
     const user = userEvent.setup();
-    render(<SignupForm />);
+    renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "newuser@example.com");
     await user.type(screen.getByLabelText(/password/i), "long-enough-pass1!");
@@ -136,7 +145,7 @@ describe("SignupForm component", () => {
     });
 
     const user = userEvent.setup();
-    render(<SignupForm />);
+    renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "existing@example.com");
     await user.type(screen.getByLabelText(/password/i), "long-enough-pass1!");
@@ -150,7 +159,7 @@ describe("SignupForm component", () => {
   it("sends an OTP and navigates to verify-otp when signing up with a code", async () => {
     const { authClient } = await import("#/lib/auth-client");
     const user = userEvent.setup();
-    render(<SignupForm />);
+    renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "newuser@example.com");
     await user.click(screen.getByRole("button", { name: /sign up with an email code/i }));
@@ -170,7 +179,7 @@ describe("SignupForm component", () => {
   it("triggers Google social sign-in when clicking Continue with Google", async () => {
     const { authClient } = await import("#/lib/auth-client");
     const user = userEvent.setup();
-    render(<SignupForm />);
+    renderForm();
 
     const googleButton = screen.getByRole("button", { name: /continue with google/i });
     await user.click(googleButton);
@@ -181,5 +190,28 @@ describe("SignupForm component", () => {
         callbackURL: "/",
       });
     });
+  });
+
+  it("displays server error when sending a sign-up code fails", async () => {
+    const { authClient } = await import("#/lib/auth-client");
+    vi.mocked(authClient.emailOtp.sendVerificationOtp).mockResolvedValueOnce({
+      data: null,
+      error: {
+        message: "Email service unavailable",
+        status: 503,
+        statusText: "Unavailable",
+      } as never,
+    });
+
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.type(screen.getByLabelText(/email/i), "newuser@example.com");
+    await user.click(screen.getByRole("button", { name: /sign up with an email code/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Email service unavailable")).toBeTruthy();
+    });
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 });

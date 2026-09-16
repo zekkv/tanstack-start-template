@@ -1,11 +1,12 @@
 import { getRouteApi } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Trash2, KeyRound, Link } from "lucide-react";
 import type { Passkey } from "@better-auth/passkey";
 import { toast } from "sonner";
 
 import { authClient } from "#/lib/auth-client";
+import { accountOptions } from "#/features/auth/accounts";
 import { Button } from "#/components/ui/button";
 import { Page } from "#/components/custom/page";
 
@@ -33,24 +34,15 @@ async function handleDeleteAccount() {
 export function SettingsPage() {
   const { user } = routeApi.useRouteContext();
   const { data: passkeys } = authClient.useListPasskeys();
-  const { data: accounts = [] } = useQuery({
-    queryKey: ["auth", "accounts"],
-    queryFn: async () => {
-      const res = await authClient.listAccounts();
-      return res.data ?? [];
-    },
-  });
-  const [deletingPasskey, setDeletingPasskey] = useState<string | null>(null);
+  const { data: accounts, status } = useQuery(accountOptions(user.id));
   const [confirmDelete, setConfirmDelete] = useState(false);
-
-  async function handleDeletePasskey(passkeyId: string) {
-    setDeletingPasskey(passkeyId);
-    const { error } = await authClient.passkey.deletePasskey({ id: passkeyId });
-    if (error) {
-      toast.error(error.message ?? "Failed to delete passkey");
-    }
-    setDeletingPasskey(null);
-  }
+  const deletePasskey = useMutation({
+    mutationFn: async (passkeyId: string) => {
+      const { error } = await authClient.passkey.deletePasskey({ id: passkeyId });
+      if (error) throw new Error(error.message ?? "Failed to delete passkey");
+    },
+    onError: error => toast.error(error.message),
+  });
 
   return (
     <Page width="md" eyebrow="Settings" title="Account">
@@ -63,11 +55,17 @@ export function SettingsPage() {
 
         {/* Linked providers */}
         <SettingsSection title="Linked providers">
-          {accounts.length === 0 ? (
+          {status === "pending" ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : status === "error" ? (
+            <p className="text-sm text-destructive" role="alert">
+              Could not load linked providers.
+            </p>
+          ) : accounts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No linked providers.</p>
           ) : (
             <ul className="space-y-2">
-              {accounts.map((acct: { id: string; providerId: string }) => (
+              {accounts.map(acct => (
                 <li key={acct.id} className="flex items-center gap-2">
                   <Link className="size-4 text-muted-foreground" />
                   <span className="text-sm">{getProviderLabel(acct.providerId)}</span>
@@ -93,9 +91,9 @@ export function SettingsPage() {
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    disabled={deletingPasskey === pk.id}
+                    disabled={deletePasskey.isPending && deletePasskey.variables === pk.id}
                     aria-label={`Delete passkey: ${pk.name ?? "Passkey"}`}
-                    onClick={() => void handleDeletePasskey(pk.id)}
+                    onClick={() => deletePasskey.mutate(pk.id)}
                     className="text-destructive hover:text-destructive"
                   >
                     <Trash2 className="size-4" />
