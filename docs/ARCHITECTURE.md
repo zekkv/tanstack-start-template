@@ -1,12 +1,12 @@
 # Architecture
 
-This project is opinionated towards [Bun](https://bun.sh/) and follows a modern SSR architecture using TanStack Start and Nitro.
+This project is opinionated towards [Bun](https://bun.sh/) and renders on the server with TanStack Start and Nitro.
 
 ## Core Stack
 
 - **Framework**: [TanStack Start](https://tanstack.com/start) — full-stack React with TanStack Router, server functions, and SSR.
 - **Server**: [Nitro](https://nitro.unjs.io/) — handles server-side logic and deployment presets.
-- **ORM & Database**: [Drizzle ORM](https://orm.drizzle.team/) with Bun's native SQL driver (`bun:sql` / `drizzle-orm/bun-sql`) — high-performance, zero-dependency PostgreSQL access.
+- **ORM & Database**: [Drizzle ORM](https://orm.drizzle.team/) with Bun's native SQL driver (`bun:sql` / `drizzle-orm/bun-sql`).
 - **Auth**: [Better Auth](https://better-auth.com/) — email + password, email OTP, passkeys, and optional Google OAuth. Rate limited at the Better Auth layer (20 req/60 s).
 - **Theme**: [next-themes](https://github.com/pacocoursey/next-themes) — class-based theme management on `html` with a mounted client toggle.
 
@@ -15,6 +15,7 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 ```
 .
 ├── docs/
+│   ├── ADDING-A-FEATURE.md # The schema-to-tests sequence for a new feature
 │   ├── ARCHITECTURE.md   # This file
 │   ├── CHANGELOG.md      # Release history
 │   ├── CONTRIBUTING.md   # Branch, commit, and test conventions
@@ -36,15 +37,16 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 │   ├── features/
 │   │   ├── auth/         # Session/account server fns, query options, login/signup/OTP/reset forms
 │   │   ├── emails/       # Email templates
-│   │   └── notes/        # Notes server functions
+│   │   ├── notes/        # Notes schema, server functions, and records.server
+│   │   └── uploads/      # Upload schema, server function, and presign.server
 │   ├── lib/              # Shared integrations and utilities
-│   │   ├── auth.ts       # Better Auth server config
-│   │   ├── auth-client.ts# Better Auth React client
-│   │   ├── logger.ts     # LogTape app logger and sink config
-│   │   ├── mailer.ts     # Resend email sender (lazy init, optional)
-│   │   ├── redis.ts      # Bun-native Redis client (optional)
-│   │   ├── seo.ts        # SEO metadata, OpenGraph, structured data, crawler formats
-│   │   ├── storage.ts    # Bun-native S3-compatible upload client (optional)
+│   │   ├── auth-client.ts    # Better Auth React client
+│   │   ├── auth.server.ts    # Better Auth server config
+│   │   ├── logger.ts         # LogTape app logger and sink config
+│   │   ├── mailer.server.ts  # Resend email sender (lazy init, optional)
+│   │   ├── redis.server.ts   # Bun-native Redis client (optional)
+│   │   ├── seo.ts            # SEO metadata, OpenGraph, structured data, crawler formats
+│   │   ├── storage.server.ts # Bun-native S3-compatible upload client (optional)
 │   │   └── utils.ts
 │   ├── routes/           # TanStack Router routes and API handlers
 │   │   ├── __root.tsx    # App shell
@@ -63,7 +65,6 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 │   │   └── api/
 │   │       ├── auth/$.ts    # Better Auth handler
 │   │       ├── health.ts
-│   │       ├── upload-url.ts# Auth-guarded presigned PUT URL
 │   │       └── sentry-example.ts # Dev only
 │   └── globals.css       # Global styles (Tailwind CSS v4)
 ├── tests/                # Vitest and Playwright suites
@@ -78,11 +79,11 @@ This project is opinionated towards [Bun](https://bun.sh/) and follows a modern 
 
 1. **Routing**: Managed by TanStack Router. `src/routes/__root.tsx` composes the shell, theme provider, header, and page outlet.
 2. **SSR**: TanStack Start handles the initial HTML render on the server via Nitro.
-3. **Protected routes**: Handled via the pathless `_authenticated.tsx` layout route which calls `getCurrentUser()` in `beforeLoad`. Unauthenticated requests redirect to `/login`, while authenticated requests inject `{ user }` into the route context for child routes (`dashboard.tsx`, `settings.tsx`). Auth routes (`/login`, `/signup`) redirect already-signed-in users to `/dashboard`.
-4. **Server functions**: `src/features/notes/server-fns.ts` exposes `listNotes`, `createNote`, and `deleteNote` via `createServerFn`. Each function re-checks the session server-side.
+3. **Protected routes**: `src/routes/__root.tsx` resolves the session once per navigation and puts `{ user }` on the route context, which the header uses to render the signed-in nav on the server. The pathless `_authenticated.tsx` layout only refuses an unauthenticated visitor with a redirect to `/login` and re-emits the narrowed user for child routes (`dashboard.tsx`, `settings.tsx`). Auth routes (`/login`, `/signup`) redirect signed-in arrivals to `/dashboard`.
+4. **Server functions**: `src/features/notes/server-fns.ts` exposes `listNotes`, `createNote`, and `deleteNote`, and `src/features/uploads/server-fns.ts` exposes `createUploadUrl`, all via `createServerFn`. Every function runs behind the middleware in `src/features/auth/session.ts`, which resolves the session. A refusal is a thrown `Error`, the behaviour TanStack Start documents: the caller catches it and reads `message`. The middleware's catch calls `setResponseStatus` first, so a direct HTTP caller still sees the status: 400 when the payload misses the schema, 401 without a session, 404 when the row is missing, 422 when the payload parses but the server refuses it, and 503 when a dependency is unconfigured.
 5. **Query cache**: `src/router.tsx` creates one TanStack Query `QueryClient` per router (30s default `staleTime`) and `setupRouterSsrQueryIntegration` supplies the provider plus SSR dehydration/hydration. Route loaders prefetch with the same `queryOptions` objects their components read (`accountOptions` in `src/features/auth/accounts.ts`); mutations over loader-owned data call `router.invalidate()`.
 6. **Auth flow**: Forms in `src/features/auth/components/*` call `src/lib/auth-client.ts`. `/login` supports email + password, email OTP, passkeys, and Google OAuth (when configured). `/signup` creates a password account (then holds the user on a "check your email" prompt) or sends an OTP; `/verify-otp` confirms the code and offers passkey enrollment; `/reset-password` both requests a reset link and consumes it (`?token=`).
-7. **File uploads**: `src/routes/api/upload-url.ts` generates a presigned PUT URL (S3-compatible). The client uploads directly to storage; the server never proxies file bytes.
+7. **File uploads**: `createUploadUrl` in `src/features/uploads/server-fns.ts` validates the request through `src/features/uploads/schema.ts` and reaches `handleCreateUploadUrl` in `presign.server.ts` through a dynamic import. It presigns a `uploads/<userId>/<uuid>.<ext>` PUT URL and returns `{ url, key }`; the dashboard PUTs the file bytes straight to storage, so the server never proxies them. An unsupported content type or a file over 10 MB is a 422, and an unset `MINIO_ENDPOINT` is a 503.
 
 ## Database & Migrations
 

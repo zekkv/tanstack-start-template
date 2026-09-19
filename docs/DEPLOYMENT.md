@@ -1,6 +1,6 @@
 # Deployment
 
-This template is **opinionated towards [Bun](https://bun.sh/)**. It builds with [Nitro](https://nitro.build/) using the `preset: "bun"` configuration and runs on Bun (`oven/bun:1-alpine`) in both development and production containers. The codebase takes full advantage of Bun-native runtime APIs (`bun:sql`, `Bun.s3`, and native Bun Redis) for zero-overhead dependencies, sub-millisecond connection handling, and lightweight container footprints.
+This template is **opinionated towards [Bun](https://bun.sh/)**. It builds with [Nitro](https://nitro.build/) using the `preset: "bun"` configuration and runs on Bun (`oven/bun:1-alpine`) in both development and production containers. Runtime code uses Bun-native APIs (`bun:sql`, `Bun.s3`, and `Bun.RedisClient`).
 
 ## Changing the deployment target
 
@@ -16,7 +16,7 @@ nitro({
 Or set the `NITRO_PRESET` environment variable at build time instead of editing the file.
 
 > [!NOTE]
-> **Bun-Native Portability**: Because this template is opinionated towards Bun, runtime features rely on Bun's built-in APIs (`bun:sql`, `Bun.s3`, `Bun.RedisClient`). Any container platform (Docker, AWS ECS/Fargate, GCP Cloud Run, Azure Container Apps, Railway, Fly.io, Render) runs the Bun container seamlessly. If targeting non-Bun serverless environments (such as Node-only Vercel functions or Cloudflare Workers), replace the Bun-native drivers with platform-specific alternatives (e.g. `@neondatabase/serverless` for Postgres, `@aws-sdk/client-s3` for S3, or `@upstash/redis` for Redis).
+> **Bun-Native Portability**: Because this template is opinionated towards Bun, runtime features rely on Bun's built-in APIs (`bun:sql`, `Bun.s3`, `Bun.RedisClient`). Any container platform (Docker, AWS ECS/Fargate, GCP Cloud Run, Azure Container Apps, Railway, Fly.io, Render) runs the Bun container without modification. If targeting non-Bun serverless environments (such as Node-only Vercel functions or Cloudflare Workers), replace the Bun-native drivers with platform-specific alternatives (e.g. `@neondatabase/serverless` for Postgres, `@aws-sdk/client-s3` for S3, or `@upstash/redis` for Redis).
 
 ---
 
@@ -145,7 +145,7 @@ Netlify also auto-detects this from the build environment. Same edge runtime lim
 
 **Resend**: Works everywhere — it's an HTTP API. Set `RESEND_API_KEY` and `EMAIL_FROM`.
 
-**Redis**: Set `REDIS_URL` (e.g. `redis://localhost:6379`). Bun includes a high-performance native Redis client (`Bun.RedisClient`) that connects directly to Redis/Valkey instances without intermediary HTTP proxies.
+**Redis**: Set `REDIS_URL` (e.g. `redis://localhost:6379`). Bun's native Redis client (`Bun.RedisClient`) connects directly to Redis/Valkey instances without intermediary HTTP proxies.
 
 **Sentry**: Set `VITE_SENTRY_DSN`. The plugin only runs source map uploads at build time when `SENTRY_AUTH_TOKEN` is set; runtime error capture works from the DSN alone.
 

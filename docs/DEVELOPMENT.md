@@ -4,8 +4,8 @@ This guide covers the local development environment, scripts catalog, database m
 
 ## Prerequisites
 
-- **[Bun](https://bun.sh/)** v1.3.14 or later
-- **[Docker](https://www.docker.com/)** and Docker Compose (for local PostgreSQL, MinIO, and Redis)
+- **[Bun](https://bun.sh/)** v1.4.2 or later
+- **[Docker](https://www.docker.com/)** and Docker Compose: local PostgreSQL, MinIO, Redis, and Mailpit, plus the Testcontainers the integration and E2E suites start
 
 ## Local Setup
 
@@ -171,8 +171,10 @@ bun run test:integration
 
 ### 3. End-to-End Tests (`tests/e2e/`)
 
-- Driven by Playwright (`playwright.config.ts`).
-- Tests full browser rendering, authentication flows, route guards, and UI interactions.
+- Driven by Playwright (`playwright.config.ts`). There is no `webServer` config: `tests/e2e/global-setup.ts` starts a `postgres:18-alpine` testcontainer on a random port, applies the committed migrations, seeds it, builds the app, and serves production on :3000 against that database. Teardown stops the server and the container.
+- Docker must be running and :3000 must be free; the setup fails on a busy port instead of reusing another server.
+- Specs wait on hydration through `tests/e2e/hydration.ts`'s `waitForHydration`, which asserts `body[data-hydrated]`; do not wait on `networkidle`.
+- The password-reset journey reads its token from the captured mail. Start Mailpit (`docker compose up -d mailpit`) so `SMTP_URL` (`smtp://127.0.0.1:1025`) has a server to relay to.
 
 Run E2E tests:
 
@@ -207,7 +209,7 @@ bun run playwright test tests/e2e/landing.test.ts
 
 ### Linting & Formatting
 
-- **[Oxlint](https://oxc.rs/docs/guide/usage/linter.html)**: Extremely fast linter. Checks are enforced with `--deny-warnings`.
+- **[Oxlint](https://oxc.rs/docs/guide/usage/linter.html)**: Fast linter. Checks are enforced with `--deny-warnings`.
   ```bash
   bun run lint:check
   bun run lint:fix
@@ -233,6 +235,8 @@ bun run prepare # reinstalls hooks if needed
 ---
 
 ## Architecture & Code Conventions
+
+For the full sequence that adds a feature across every layer, see [Adding a Feature](./ADDING-A-FEATURE.md).
 
 ### Server Functions & Bundle Isolation
 
