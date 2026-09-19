@@ -1,4 +1,4 @@
-import { getRouteApi } from "@tanstack/react-router";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Trash2, KeyRound, Link } from "lucide-react";
@@ -23,17 +23,19 @@ function getProviderLabel(providerId: string) {
   return PROVIDER_LABELS[providerId] ?? providerId.charAt(0).toUpperCase() + providerId.slice(1);
 }
 
-async function handleDeleteAccount() {
-  const { error } = await authClient.deleteUser({});
-  if (error) {
-    toast.error(error.message ?? "Failed to delete account");
-    return;
-  }
-  window.location.href = "/";
-}
-
 export function SettingsPage() {
   const { user } = routeApi.useRouteContext();
+  const navigate = useNavigate();
+
+  async function handleDeleteAccount() {
+    const { error } = await authClient.deleteUser({});
+    if (error) {
+      toast.error(error.message ?? "Failed to delete account");
+      return;
+    }
+    await navigate({ to: "/" });
+  }
+
   const { data: passkeys, isPending: passkeysPending } = authClient.useListPasskeys();
   const { data: accounts, status } = useQuery(accountOptions(user.id));
   const [confirmDelete, setConfirmDelete] = useState(false);

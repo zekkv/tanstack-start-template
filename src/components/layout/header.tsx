@@ -1,4 +1,4 @@
-import { Link, useRouteContext } from "@tanstack/react-router";
+import { Link, useNavigate, useRouteContext, useRouter } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -9,13 +9,16 @@ import { ThemeToggle } from "#/components/ui/theme-toggle";
 export function Header() {
   // Resolved in `__root.tsx` beforeLoad, so the signed-in nav is in the server markup.
   const { user } = useRouteContext({ from: "__root__" });
+  const navigate = useNavigate();
+  const router = useRouter();
   const signOut = useMutation({
     mutationFn: async () => {
       const { error } = await authClient.signOut();
       if (error) throw new Error(error.message ?? "Failed to sign out");
     },
-    onSuccess: () => {
-      window.location.href = "/";
+    onSuccess: async () => {
+      await navigate({ to: "/" });
+      await router.invalidate();
     },
     onError: error => toast.error(error.message),
   });
