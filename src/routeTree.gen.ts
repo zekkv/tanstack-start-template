@@ -22,7 +22,6 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiSentryExampleRouteImport } from './routes/api/sentry-example'
-import { Route as ApiUploadUrlRouteImport } from './routes/api/upload-url'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -89,11 +88,6 @@ const ApiSentryExampleRoute = ApiSentryExampleRouteImport.update({
   path: '/api/sentry-example',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiUploadUrlRoute = ApiUploadUrlRouteImport.update({
-  id: '/api/upload-url',
-  path: '/api/upload-url',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -113,7 +107,6 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/api/health': typeof ApiHealthRoute
   '/api/sentry-example': typeof ApiSentryExampleRoute
-  '/api/upload-url': typeof ApiUploadUrlRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
@@ -129,7 +122,6 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/api/health': typeof ApiHealthRoute
   '/api/sentry-example': typeof ApiSentryExampleRoute
-  '/api/upload-url': typeof ApiUploadUrlRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -147,7 +139,6 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/api/health': typeof ApiHealthRoute
   '/api/sentry-example': typeof ApiSentryExampleRoute
-  '/api/upload-url': typeof ApiUploadUrlRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
@@ -165,7 +156,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/api/health'
     | '/api/sentry-example'
-    | '/api/upload-url'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -181,7 +171,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/api/health'
     | '/api/sentry-example'
-    | '/api/upload-url'
     | '/api/auth/$'
   id:
     | '__root__'
@@ -198,7 +187,6 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/api/health'
     | '/api/sentry-example'
-    | '/api/upload-url'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -214,7 +202,6 @@ export interface RootRouteChildren {
   VerifyOtpRoute: typeof VerifyOtpRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiSentryExampleRoute: typeof ApiSentryExampleRoute
-  ApiUploadUrlRoute: typeof ApiUploadUrlRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -311,13 +298,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSentryExampleRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/upload-url': {
-      id: '/api/upload-url'
-      path: '/api/upload-url'
-      fullPath: '/api/upload-url'
-      preLoaderRoute: typeof ApiUploadUrlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -354,7 +334,6 @@ const rootRouteChildren: RootRouteChildren = {
   VerifyOtpRoute: VerifyOtpRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiSentryExampleRoute: ApiSentryExampleRoute,
-  ApiUploadUrlRoute: ApiUploadUrlRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

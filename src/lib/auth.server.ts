@@ -8,7 +8,7 @@ import { createElement } from "react";
 import { db } from "#/db";
 import * as schema from "#/db/schema";
 import { env } from "#/env";
-import { sendEmail } from "#/lib/mailer";
+import { sendEmail } from "#/lib/mailer.server";
 import { OtpEmail } from "#/features/emails/components/otp-email";
 import { ResetPasswordEmail } from "#/features/emails/components/reset-password-email";
 import { VerificationEmail } from "#/features/emails/components/verification-email";

@@ -1,14 +1,18 @@
 import { createServerFn } from "@tanstack/react-start";
 import { queryOptions } from "@tanstack/react-query";
 
-export const listAccounts = createServerFn({ method: "GET" }).handler(async () => {
-  const [{ getRequest }, { auth }] = await Promise.all([
-    import("@tanstack/react-start/server"),
-    import("#/lib/auth"),
-  ]);
+import { requireSession } from "#/features/auth/session";
 
-  return auth.api.listUserAccounts({ headers: getRequest().headers });
-});
+export const listAccounts = createServerFn({ method: "GET" })
+  .middleware([requireSession])
+  .handler(async () => {
+    const [{ getRequest }, { auth }] = await Promise.all([
+      import("@tanstack/react-start/server"),
+      import("#/lib/auth.server"),
+    ]);
+
+    return auth.api.listUserAccounts({ headers: getRequest().headers });
+  });
 
 export function accountOptions(userId: string) {
   return queryOptions({

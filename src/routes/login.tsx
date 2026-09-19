@@ -1,6 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { LoginPage } from "#/features/auth/components/login-page";
-import { getCurrentUser } from "#/features/auth/session";
 import { createSeoHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/login")({
@@ -9,8 +8,8 @@ export const Route = createFileRoute("/login")({
       title: "Sign In — TanStack Start Template",
       noindex: true,
     }),
-  beforeLoad: async () => {
-    if (await getCurrentUser()) {
+  beforeLoad: ({ context }) => {
+    if (context.user) {
       throw redirect({ to: "/dashboard" });
     }
   },

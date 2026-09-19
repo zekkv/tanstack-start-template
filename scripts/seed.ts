@@ -43,7 +43,9 @@ export const seedNotes: SeedNote[] = [
 export type Database = ReturnType<typeof drizzle<typeof schema>>;
 
 /**
- * Executes idempotent insertion of seed users and default notes.
+ * Executes idempotent insertion of seed users and default notes. Every caller — the seed CLI,
+ * the integration global setup, the E2E global setup — runs against its own database, so the
+ * lookup-then-insert below has no concurrent writer to race.
  */
 export async function runSeed(database: Database): Promise<void> {
   await database.insert(schema.user).values(seedUsers).onConflictDoNothing();

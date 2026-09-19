@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { DashboardPage } from "#/features/dashboard/components/page";
+import { DashboardPage, DashboardPageSkeleton } from "#/features/dashboard/components/page";
 import { listNotes } from "#/features/notes/server-fns";
 import { createSeoHead } from "#/lib/seo";
 
@@ -13,5 +13,6 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
     const notes = await listNotes();
     return { notes };
   },
+  pendingComponent: DashboardPageSkeleton,
   component: DashboardPage,
 });
