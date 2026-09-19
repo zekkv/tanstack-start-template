@@ -26,10 +26,14 @@ concurrency:
 
 jobs:
   code-quality:
-    name: Lint and type check
+    name: Lint, type check, and build
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    env:
+      # drizzle.config.ts imports src/env.ts; both vars satisfy it for the migration checks.
+      DATABASE_URL: postgresql://postgres:password@localhost:5432/app
+      BETTER_AUTH_SECRET: "template-migration-only-secret-000000"
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-bun
@@ -39,3 +43,9 @@ jobs:
         run: bun run lint:check
       - name: Check types
         run: bun run type:check
+      - name: Check migrations are generated
+        run: bun run db:generate && git diff --exit-code -- src/db/drizzle
+      - name: Check migration files
+        run: bunx drizzle-kit check
+      - name: Build for production
+        run: bun run build
