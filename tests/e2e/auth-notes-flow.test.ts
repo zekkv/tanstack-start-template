@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 
+import { waitForHydration } from "./hydration";
+
 test.describe("Auth and Notes Lifecycle Loop", () => {
   test("completes signup, login, and note creation/deletion loop", async ({ page }) => {
     const uniqueId = Date.now();
@@ -14,7 +16,7 @@ test.describe("Auth and Notes Lifecycle Loop", () => {
 
     // 1. Sign up
     await page.goto("/signup");
-    await page.waitForLoadState("networkidle");
+    await waitForHydration(page);
     await expect(page.getByRole("heading", { name: "Create an account" })).toBeVisible({
       timeout: 10_000,
     });
@@ -33,7 +35,7 @@ test.describe("Auth and Notes Lifecycle Loop", () => {
 
     // 3. Sign in via /login
     await page.goto("/login");
-    await page.waitForLoadState("networkidle");
+    await waitForHydration(page);
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible({
       timeout: 10_000,
     });
@@ -46,7 +48,7 @@ test.describe("Auth and Notes Lifecycle Loop", () => {
 
     // 4. Navigate to /dashboard
     await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
+    await waitForHydration(page);
     await expect(page.getByRole("heading", { name: `Welcome, ${testEmail}` })).toBeVisible({
       timeout: 10_000,
     });

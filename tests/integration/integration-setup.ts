@@ -8,7 +8,9 @@ import { seed } from "../../scripts/seed";
 let container: StartedPostgreSqlContainer | undefined;
 
 /**
- * Spins up a postgres:18-alpine testcontainer, pushes the database schema, and seeds test data.
+ * Spins up a postgres:18-alpine testcontainer, applies the committed migrations, and seeds test
+ * data. Migrations rather than `drizzle-kit push`: generated SQL is what deploy runs, so the
+ * suite has to exercise it.
  */
 export async function setup(): Promise<void> {
   if (container) {
@@ -19,9 +21,13 @@ export async function setup(): Promise<void> {
   const connectionUri = container.getConnectionUri();
 
   process.env.DATABASE_URL = connectionUri;
+  // drizzle.config.ts imports src/env.ts, so the migration child process needs the full contract;
+  // CI supplies the secret, local runs take the same throwaway one tests/setup.ts uses.
+  process.env.BETTER_AUTH_SECRET ??= "01234567890123456789012345678901";
+  process.env.BETTER_AUTH_URL ??= "http://localhost:3000";
 
   const drizzleBin = path.resolve(process.cwd(), "node_modules/drizzle-kit/bin.cjs");
-  execFileSync(process.execPath, [drizzleBin, "push", "--force"], {
+  execFileSync(process.execPath, [drizzleBin, "migrate"], {
     env: {
       ...process.env,
       DATABASE_URL: connectionUri,

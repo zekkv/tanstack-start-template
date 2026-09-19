@@ -2,7 +2,8 @@
 // oxlint-disable-next-line import/no-unassigned-import
 import "zod/compile";
 
-process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/test";
+// DATABASE_URL is deliberately not defaulted here: an integration run must use the container
+// globalSetup starts, and a unit run that silently reaches a local database hides the mistake.
 process.env.BETTER_AUTH_SECRET ??= "01234567890123456789012345678901";
 process.env.BETTER_AUTH_URL ??= "http://localhost:3000";
 

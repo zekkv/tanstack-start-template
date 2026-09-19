@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CreateNoteInput, DeleteNoteInput } from "#/features/notes/server-fns";
+import { CreateNoteInput, DeleteNoteInput } from "#/features/notes/schema";
 
 describe("Notes Input Validators", () => {
   describe("CreateNoteInput", () => {

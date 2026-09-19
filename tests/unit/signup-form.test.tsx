@@ -5,12 +5,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SignupForm } from "#/features/auth/components/signup-form";
 
 const mockNavigate = vi.fn<() => void>();
+const mockInvalidate = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
     <a href={to}>{children}</a>
   ),
   useNavigate: () => mockNavigate,
+  useRouter: () => ({ invalidate: mockInvalidate }),
 }));
 
 vi.mock("#/lib/auth-client", () => ({
@@ -135,6 +137,8 @@ describe("SignupForm component", () => {
       ).toBeTruthy();
     });
     expect(mockNavigate).not.toHaveBeenCalled();
+    // The header reads the session from route context, so the in-place sign-up must re-resolve it.
+    expect(mockInvalidate).toHaveBeenCalled();
   });
 
   it("displays server error message when sign-up fails", async () => {
