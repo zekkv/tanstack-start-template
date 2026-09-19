@@ -1,10 +1,8 @@
-import { TanStackDevtools } from "@tanstack/react-devtools";
-import { formDevtoolsPlugin } from "@tanstack/react-form-devtools";
+import { Suspense } from "react";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 
+import { Devtools } from "#/components/devtools";
 import { Header } from "#/components/layout/header";
 import { RootDocument } from "#/components/layout/root-document";
 import { RootErrorPage, RootNotFoundPage } from "#/components/pages/error";
@@ -60,14 +58,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       <Header />
       <Outlet />
       {import.meta.env.DEV && (
-        <TanStackDevtools
-          plugins={[
-            { name: "TanStack Router", render: <TanStackRouterDevtoolsPanel /> },
-            formDevtoolsPlugin(),
-          ]}
-        />
+        <Suspense fallback={null}>
+          <Devtools />
+        </Suspense>
       )}
-      <ReactQueryDevtools />
     </RootDocument>
   ),
   errorComponent: RootErrorPage,

@@ -10,6 +10,9 @@ import { configureAppLogging } from "./lib/logger";
 import { routeTree } from "./routeTree.gen";
 import { env } from "./env";
 
+const REPLAY_SESSION_SAMPLE_RATE: number = 0.1;
+const REPLAY_ERROR_SAMPLE_RATE: number = 1;
+
 export function getRouter() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { staleTime: 30_000 } },
@@ -37,17 +40,25 @@ export function getRouter() {
     if (!globalState.__appSentryInitialized__ && sentryDsn) {
       Sentry.init({
         dsn: sentryDsn,
-        integrations: [
-          Sentry.tanstackRouterBrowserTracingIntegration(router),
-          Sentry.replayIntegration(),
-        ],
+        integrations: [Sentry.tanstackRouterBrowserTracingIntegration(router)],
         tracesSampleRate: 0.1,
-        replaysSessionSampleRate: 0.1,
-        replaysOnErrorSampleRate: 1.0,
+        replaysSessionSampleRate: REPLAY_SESSION_SAMPLE_RATE,
+        replaysOnErrorSampleRate: REPLAY_ERROR_SAMPLE_RATE,
         enableLogs: true,
         sendDefaultPii: false,
       });
       globalState.__appSentryInitialized__ = true;
+
+      // Replay's rrweb payload is fetched from Sentry's CDN instead of shipping in the entry
+      // chunk; the integration applies its own sampling, so this only gates whether it loads.
+      // Tradeoff: there is no pre-error replay buffer until the CDN fetch resolves.
+      if (REPLAY_SESSION_SAMPLE_RATE > 0 || REPLAY_ERROR_SAMPLE_RATE > 0) {
+        void Sentry.lazyLoadIntegration("replayIntegration")
+          .then(replayIntegration => Sentry.addIntegration(replayIntegration()))
+          .catch(() => {
+            // A blocked or failed CDN fetch must not break the app; tracing still works.
+          });
+      }
     }
 
     configureAppLogging({
