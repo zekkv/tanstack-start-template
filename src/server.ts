@@ -2,6 +2,13 @@
 import "zod/compile";
 import { wrapFetchWithSentry } from "@sentry/tanstackstart-react";
 import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
+import { configureAppLogging } from "#/lib/logger";
+import { env } from "#/env";
+
+configureAppLogging({
+  isDevelopment: import.meta.env.DEV,
+  enableSentrySink: Boolean(env.VITE_SENTRY_DSN),
+});
 
 /**
  * Server entry point.
