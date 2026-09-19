@@ -12,13 +12,26 @@ services:
       timeout: 5s
       retries: 5
 
+  mailpit:
+    image: axllent/mailpit:v1.31.1
+    container_name: mailpit
+    ports:
+      - 1025:1025
+      - 8025:8025
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8025/api/v1/info"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   postgres:
     image: postgres:18-alpine
     container_name: postgres
     ports:
       - 5432:5432
     volumes:
-      - ./data/postgres/data:/var/lib/postgresql/data
+      # postgres:18 keeps PGDATA under /var/lib/postgresql; mounting the old /data path loses it.
+      - ./data/postgres:/var/lib/postgresql
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
