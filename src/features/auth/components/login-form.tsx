@@ -13,7 +13,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form-start";
 import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
-import { FormError } from "#/features/auth/components/form-error";
+import { FormError } from "#/components/custom/form-error";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect } from "react";
 
@@ -88,9 +88,9 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
           void form.handleSubmit();
         }}
       >
-        <FieldGroup className="gap-5">
+        <FieldGroup>
           <div className="flex flex-col items-center gap-1.5 text-center">
-            <h1 className="font-heading text-2xl font-bold tracking-tight">Welcome back</h1>
+            <h1 className="font-heading text-2xl font-semibold tracking-tight">Welcome back</h1>
             <FieldDescription>
               Don&apos;t have an account? <Link to="/signup">Sign up</Link>
             </FieldDescription>
@@ -152,7 +152,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 
           <FieldSeparator>Or</FieldSeparator>
 
-          <Field className="grid gap-3">
+          <div className="grid gap-3">
             <Button
               variant="outline"
               type="button"
@@ -184,7 +184,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
               </svg>
               Continue with Google
             </Button>
-          </Field>
+          </div>
         </FieldGroup>
       </form>
     </div>

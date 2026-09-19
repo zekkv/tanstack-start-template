@@ -29,7 +29,7 @@ export function Page({
       {(eyebrow || title || description) && (
         <header>
           {eyebrow && (
-            <p className="font-mono text-xs tracking-[0.2em] text-muted-foreground uppercase">
+            <p className="font-mono text-xs tracking-caps text-muted-foreground uppercase">
               {eyebrow}
             </p>
           )}

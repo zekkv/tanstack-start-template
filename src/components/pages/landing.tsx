@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { Page } from "#/components/custom/page";
+import { Button, buttonVariants } from "#/components/ui/button";
 
 const REPO_URL = "https://github.com/zek01svg/tanstack-start-template";
 const DOCS_URL = "https://tanstack.com/start/latest/docs/framework/react/overview";
@@ -72,11 +73,11 @@ function HeroSection() {
   return (
     <section className="animate-in fade-in text-foreground duration-700">
       <div className="py-20 md:py-28">
-        <p className="font-mono text-xs tracking-[0.2em] text-muted-foreground uppercase">
+        <p className="font-mono text-xs tracking-caps text-muted-foreground uppercase">
           TanStack Start template
         </p>
 
-        <h1 className="font-heading mt-6 max-w-2xl text-5xl font-semibold tracking-tight text-balance text-foreground md:text-7xl md:leading-[1.02]">
+        <h1 className="font-heading mt-6 max-w-2xl text-5xl font-semibold tracking-tight text-balance text-foreground md:text-7xl md:leading-display">
           Start from done.
         </h1>
 
@@ -91,7 +92,7 @@ function HeroSection() {
             href={DOCS_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-10 items-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-80 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            className={buttonVariants({ size: "lg" })}
           >
             Get started
           </a>
@@ -122,7 +123,7 @@ function QuickstartBlock() {
 
   return (
     <figure className="mt-14 max-w-xl">
-      <figcaption className="font-mono text-xs tracking-[0.2em] text-muted-foreground uppercase">
+      <figcaption className="font-mono text-xs tracking-caps text-muted-foreground uppercase">
         Quickstart
       </figcaption>
       <div className="relative mt-3 rounded-md border border-border bg-card p-4">
@@ -134,14 +135,16 @@ function QuickstartBlock() {
             </div>
           ))}
         </pre>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-sm"
           onClick={() => void handleCopy()}
           aria-label={copied ? "Copied" : "Copy commands"}
-          className="absolute top-3 right-3 flex size-8 items-center justify-center rounded-md bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+          className="absolute top-3 right-3"
         >
           {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-        </button>
+        </Button>
       </div>
     </figure>
   );

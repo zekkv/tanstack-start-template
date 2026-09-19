@@ -9,12 +9,12 @@ import {
   FieldSeparator,
 } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form-start";
 import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
 import { PasswordSchema } from "#/features/auth/schema/password";
-import { FormError } from "#/features/auth/components/form-error";
+import { FormError } from "#/components/custom/form-error";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -25,6 +25,7 @@ const schema = z.object({
 
 export function SignupForm({ className, ...props }: React.ComponentProps<"div">) {
   const navigate = useNavigate();
+  const router = useRouter();
   const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
 
   const form = useForm({
@@ -46,6 +47,8 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
         });
         return;
       }
+      // Re-runs the root's beforeLoad so the header picks up the session the sign-up created.
+      await router.invalidate();
       setVerifyEmail(value.email);
     },
   });
@@ -68,9 +71,9 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
   if (verifyEmail) {
     return (
       <div className={cn("flex flex-col gap-5", className)} {...props}>
-        <FieldGroup className="gap-5">
+        <FieldGroup>
           <div className="flex flex-col items-center gap-1.5 text-center">
-            <h1 className="font-heading text-2xl font-bold tracking-tight">Check your email</h1>
+            <h1 className="font-heading text-2xl font-semibold tracking-tight">Check your email</h1>
             <FieldDescription>
               We sent a verification link to <strong>{verifyEmail}</strong>. Verify your address to
               keep the password you just set — signing in with an email code before you verify
@@ -95,9 +98,11 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
           void form.handleSubmit();
         }}
       >
-        <FieldGroup className="gap-5">
+        <FieldGroup>
           <div className="flex flex-col items-center gap-1.5 text-center">
-            <h1 className="font-heading text-2xl font-bold tracking-tight">Create an account</h1>
+            <h1 className="font-heading text-2xl font-semibold tracking-tight">
+              Create an account
+            </h1>
             <FieldDescription>
               Already have an account? <Link to="/login">Sign in</Link>
             </FieldDescription>
@@ -159,7 +164,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
 
           <FieldSeparator>Or</FieldSeparator>
 
-          <Field className="grid gap-3">
+          <div className="grid gap-3">
             <Button
               variant="outline"
               type="button"
@@ -183,7 +188,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
               </svg>
               Continue with Google
             </Button>
-          </Field>
+          </div>
         </FieldGroup>
       </form>
     </div>

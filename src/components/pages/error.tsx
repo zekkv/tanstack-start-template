@@ -1,5 +1,12 @@
+import * as Sentry from "@sentry/tanstackstart-react";
+import * as React from "react";
+import { Link } from "@tanstack/react-router";
+import type { ErrorComponentProps } from "@tanstack/react-router";
+
 import { cn } from "cn";
+import { Button } from "#/components/ui/button";
 import { Page } from "#/components/custom/page";
+import { RootDocument } from "#/components/layout/root-document";
 
 interface ErrorPageProps {
   error: unknown;
@@ -22,9 +29,7 @@ export function ErrorPage({
     >
       <div className="w-full space-y-8 animate-in fade-in duration-500">
         <div className="space-y-3">
-          <p className="font-mono text-xs tracking-[0.2em] text-muted-foreground uppercase">
-            Error
-          </p>
+          <p className="font-mono text-xs tracking-caps text-muted-foreground uppercase">Error</p>
           <h1 className="font-heading text-2xl font-semibold tracking-tight md:text-3xl">
             {title}
           </h1>
@@ -36,22 +41,46 @@ export function ErrorPage({
 
         <div className="flex flex-col items-start gap-3">
           {reset && (
-            <button
-              type="button"
-              onClick={reset}
-              className="cursor-pointer text-sm font-medium underline decoration-border underline-offset-4 hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-            >
+            <Button type="button" variant="link" size="sm" onClick={reset}>
               Try again
-            </button>
+            </Button>
           )}
-          <a
-            href="/"
-            className="text-sm font-medium underline decoration-border underline-offset-4 hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-          >
+          <Button variant="link" size="sm" render={<Link to="/" />}>
             Back to home
-          </a>
+          </Button>
         </div>
       </div>
     </Page>
+  );
+}
+
+/**
+ * The root route's error boundary. A boundary replaces everything beneath `<html>`, so it
+ * re-renders the document shell itself, and it is the one place that reports the failure to
+ * Sentry — on the server during SSR, and again on the client once it hydrates.
+ */
+export function RootErrorPage(props: ErrorComponentProps) {
+  // Capture SSR rendering exceptions manually as per documentation
+  if (typeof window === "undefined") {
+    Sentry.captureException(props.error);
+  }
+
+  React.useEffect(() => {
+    Sentry.captureException(props.error);
+  }, [props.error]);
+
+  return (
+    <RootDocument meta={<meta name="robots" content="noindex, nofollow" />}>
+      <ErrorPage error={props.error} reset={props.reset} />
+    </RootDocument>
+  );
+}
+
+/** The root route's 404. Nothing to report — the address simply matched no route. */
+export function RootNotFoundPage() {
+  return (
+    <RootDocument meta={<meta name="robots" content="noindex, nofollow" />}>
+      <ErrorPage error="The page you are looking for does not exist." title="404 - Not Found" />
+    </RootDocument>
   );
 }

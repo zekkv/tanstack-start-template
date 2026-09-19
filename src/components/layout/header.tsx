@@ -1,13 +1,14 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouteContext } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { authClient } from "#/lib/auth-client";
 import { Button } from "#/components/ui/button";
-import { ThemeToggle } from "../ui/theme-toggle";
+import { ThemeToggle } from "#/components/ui/theme-toggle";
 
 export function Header() {
-  const { data: session } = authClient.useSession();
+  // Resolved in `__root.tsx` beforeLoad, so the signed-in nav is in the server markup.
+  const { user } = useRouteContext({ from: "__root__" });
   const signOut = useMutation({
     mutationFn: async () => {
       const { error } = await authClient.signOut();
@@ -30,15 +31,21 @@ export function Header() {
         </Link>
 
         <nav className="flex items-center gap-1">
-          <a
-            href="https://github.com/zek01svg/tanstack-start-template"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          <Button
+            variant="ghost"
+            size="sm"
+            render={
+              <a
+                href="https://github.com/zek01svg/tanstack-start-template"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="GitHub repository"
+              />
+            }
           >
             GitHub
-          </a>
-          {session?.user && (
+          </Button>
+          {user && (
             <Button
               type="button"
               variant="ghost"

@@ -6,7 +6,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form-start";
 import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
-import { FormError } from "#/features/auth/components/form-error";
+import { FormError } from "#/components/custom/form-error";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -78,9 +78,9 @@ export function VerifyOtpForm({ email, flow, className, ...props }: VerifyOtpFor
           void form.handleSubmit();
         }}
       >
-        <FieldGroup className="gap-5">
+        <FieldGroup>
           <div className="flex flex-col items-center gap-1.5 text-center">
-            <h1 className="font-heading text-2xl font-bold tracking-tight">Check your email</h1>
+            <h1 className="font-heading text-2xl font-semibold tracking-tight">Check your email</h1>
             <FieldDescription>
               We sent a 6-digit code to <strong>{email}</strong>
             </FieldDescription>
@@ -104,7 +104,7 @@ export function VerifyOtpForm({ email, flow, className, ...props }: VerifyOtpFor
                   }}
                   onBlur={field.handleBlur}
                   aria-invalid={field.state.meta.errors.length > 0}
-                  className="text-center tracking-widest text-lg"
+                  variant="otp"
                 />
                 <FieldError errors={field.state.meta.errors} />
               </Field>
@@ -149,9 +149,9 @@ function PasskeyPrompt({
 }) {
   return (
     <div className="flex flex-col gap-5">
-      <FieldGroup className="gap-5">
+      <FieldGroup>
         <div className="flex flex-col items-center gap-1.5 text-center">
-          <h1 className="font-heading text-2xl font-bold tracking-tight">Set up a passkey</h1>
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">Set up a passkey</h1>
           <FieldDescription>
             Use your device biometrics or PIN to sign in faster next time. No password needed.
           </FieldDescription>
@@ -171,7 +171,7 @@ function PasskeyPrompt({
           </Button>
         </Field>
 
-        <FieldDescription className="text-center text-xs">
+        <FieldDescription className="text-center">
           Signed in as <strong>{email}</strong>
         </FieldDescription>
       </FieldGroup>
