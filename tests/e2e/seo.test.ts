@@ -54,9 +54,13 @@ test.describe("SEO and Metadata", () => {
     // JSON-LD Structured Data
     const jsonLdScript = page.locator('script[type="application/ld+json"]');
     await expect(jsonLdScript).toBeAttached();
-    await expect(jsonLdScript).toContainText("schema.org");
 
-    const parsed = JSON.parse((await jsonLdScript.textContent()) ?? "") as {
+    // A `<script>` has no rendered text, so web-first text assertions see an empty string;
+    // read `textContent` and assert on the value instead.
+    const jsonLdContent = await jsonLdScript.textContent();
+    expect(jsonLdContent).toContain("schema.org");
+
+    const parsed = JSON.parse(jsonLdContent ?? "") as {
       "@context": string;
       "@graph": Array<{ "@type": string }>;
     };
