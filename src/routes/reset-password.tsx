@@ -4,14 +4,14 @@ import { ResetPasswordPage } from "#/features/auth/components/reset-password-pag
 import { createSeoHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/reset-password")({
+  validateSearch: z.object({
+    token: z.string().optional(),
+    error: z.string().optional(),
+  }),
   head: () =>
     createSeoHead({
       title: "Reset Password — TanStack Start Template",
       noindex: true,
     }),
-  validateSearch: z.object({
-    token: z.string().optional(),
-    error: z.string().optional(),
-  }),
   component: ResetPasswordPage,
 });

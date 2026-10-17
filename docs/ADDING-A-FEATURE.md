@@ -80,7 +80,7 @@ A handler that cannot find its row throws `NotFoundError`; the session middlewar
 
 ## 4. Expose the server functions
 
-Create `src/features/<feature>/server-fns.ts`. Routes import this module, so it must not statically import `#/db`, `#/db/schema`, or `"bun"`. Every `createServerFn` declares `.middleware([...])`; `tests/unit/server-function-middleware.test.ts` fails when one does not.
+Create `src/features/<feature>/server-fns.ts`. Routes import this module, so it must not statically import `#/db`, `#/db/schema`, or `"bun"`. Every `createServerFn` declares `.middleware([...])`; `template/server-fn-requires-session` fails the lint when one does not.
 
 ```ts
 import { createServerFn } from "@tanstack/react-start";
@@ -104,7 +104,7 @@ The middleware pipeline checks the session before the handler runs, so the handl
 
 ## 5. Wire the route and the view
 
-A route module declares `Route` and nothing else; the view is a component under `src/features/<feature>/components/`. `tests/unit/route-module-boundaries.test.ts` enforces both. `src/routes/_authenticated/dashboard.tsx` is the reference pair: the route loads the notes, and `src/features/dashboard/components/page.tsx` renders them.
+A route module declares `Route` and nothing else; the view is a component under `src/features/<feature>/components/`. `template/route-declaration-only` and `template/route-view-source` enforce both. `src/routes/_authenticated/dashboard.tsx` is the reference pair: the route loads the notes, and `src/features/dashboard/components/page.tsx` renders them.
 
 ```tsx
 // src/routes/_authenticated/dashboard.tsx
@@ -149,4 +149,4 @@ bun run test:integration
 bun run test:e2e
 ```
 
-Before opening a pull request, run the full verification suite in [CONTRIBUTING.md](./CONTRIBUTING.md#pre-pr-verification). A `.server.ts` import that slips into a client-reachable module under the shared directories fails both `tests/unit/client-bundle-safety.test.ts` and `bun run build`; run the build as well.
+Before opening a pull request, run the full verification suite in [CONTRIBUTING.md](./CONTRIBUTING.md#pre-pr-verification). A `.server.ts` import that slips into a client-reachable module under the shared directories fails both `template/bundle-no-server-imports` and `bun run build`; run the build as well.

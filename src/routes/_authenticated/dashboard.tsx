@@ -4,15 +4,15 @@ import { listNotes } from "#/features/notes/server-fns";
 import { createSeoHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
+  loader: async () => {
+    const notes = await listNotes();
+    return { notes };
+  },
   head: () =>
     createSeoHead({
       title: "Dashboard — TanStack Start Template",
       noindex: true,
     }),
-  loader: async () => {
-    const notes = await listNotes();
-    return { notes };
-  },
   pendingComponent: DashboardPageSkeleton,
   component: DashboardPage,
 });

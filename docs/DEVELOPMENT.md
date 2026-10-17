@@ -214,6 +214,7 @@ bun run playwright test tests/e2e/landing.test.ts
   bun run lint:check
   bun run lint:fix
   ```
+  `jsPlugins` in `.oxlintrc.json` loads four ESLint plugins (TanStack Router, TanStack Query, Testing Library, Playwright) and the template's own house rules in `scripts/oxlint-plugin-template.js` (`template/*`). JS plugins run in a Node sidecar, so they are the slowest part of a lint run; add one only when it replaces a rule the built-in plugins cannot express.
 - **[Oxfmt](https://oxc.rs/docs/guide/usage/formatter.html)**: Fast code and markdown formatter.
   ```bash
   bun run format:check
@@ -252,6 +253,7 @@ Server functions created with `createServerFn` (TanStack Start) are imported by 
   import type { Database } from "#/db";
   ```
 - **Do not use `.server.ts` naming for route-imported files**: `@tanstack/start-plugin-core` blocks files matching `**/*.server.*` from the client environment. The `.server.ts` suffix is reserved only for modules never imported by client routes.
+- These rules are enforced by the `template/*` lint rules — `bundle-no-server-imports`, `bundle-no-server-default-params`, and `server-fn-requires-session` — so `bun run lint:check` fails on a violation instead of a later build or test run.
 
 ### Imports & Path Aliases
 

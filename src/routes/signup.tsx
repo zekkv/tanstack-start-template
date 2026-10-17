@@ -3,11 +3,6 @@ import { SignupPage } from "#/features/auth/components/signup-page";
 import { createSeoHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/signup")({
-  head: () =>
-    createSeoHead({
-      title: "Sign Up — TanStack Start Template",
-      noindex: true,
-    }),
   /**
    * The session `__root.tsx` already resolved, so asking the server again would spend a second
    * roundtrip on the same navigation.
@@ -22,5 +17,10 @@ export const Route = createFileRoute("/signup")({
       throw redirect({ to: "/dashboard" });
     }
   },
+  head: () =>
+    createSeoHead({
+      title: "Sign Up — TanStack Start Template",
+      noindex: true,
+    }),
   component: SignupPage,
 });

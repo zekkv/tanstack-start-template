@@ -3,15 +3,15 @@ import { LoginPage } from "#/features/auth/components/login-page";
 import { createSeoHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/login")({
-  head: () =>
-    createSeoHead({
-      title: "Sign In — TanStack Start Template",
-      noindex: true,
-    }),
   beforeLoad: ({ context }) => {
     if (context.user) {
       throw redirect({ to: "/dashboard" });
     }
   },
+  head: () =>
+    createSeoHead({
+      title: "Sign In — TanStack Start Template",
+      noindex: true,
+    }),
   component: LoginPage,
 });

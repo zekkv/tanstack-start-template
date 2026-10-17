@@ -54,13 +54,9 @@ test.describe("SEO and Metadata", () => {
     // JSON-LD Structured Data
     const jsonLdScript = page.locator('script[type="application/ld+json"]');
     await expect(jsonLdScript).toBeAttached();
+    await expect(jsonLdScript).toContainText("schema.org");
 
-    const jsonLdContent = await jsonLdScript.textContent();
-    expect(jsonLdContent).toBeTruthy();
-    if (!jsonLdContent) {
-      throw new Error("Missing jsonLdContent");
-    }
-    const parsed = JSON.parse(jsonLdContent) as {
+    const parsed = JSON.parse((await jsonLdScript.textContent()) ?? "") as {
       "@context": string;
       "@graph": Array<{ "@type": string }>;
     };

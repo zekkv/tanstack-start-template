@@ -52,9 +52,7 @@ describe("VerifyOtpForm component", () => {
     const otpInput = screen.getByLabelText(/verification code/i);
     fireEvent.change(otpInput, { target: { value: "123" } });
 
-    const form = otpInput.closest("form");
-    expect(form).toBeTruthy();
-    fireEvent.submit(form as HTMLFormElement);
+    fireEvent.click(screen.getByRole("button", { name: /verify code/i }));
 
     await waitFor(() => {
       expect(otpInput.getAttribute("aria-invalid")).toBe("true");

@@ -66,11 +66,11 @@ describe("LoginForm component", () => {
     renderForm();
 
     const emailInput = screen.getByLabelText(/email/i);
-    fireEvent.change(emailInput, { target: { value: "not-an-email" } });
+    // `a@b` passes the browser's own `type="email"` constraint (which blocks submission in a
+    // browser), and fails the app's Zod schema — the error the form is expected to surface.
+    fireEvent.change(emailInput, { target: { value: "a@b" } });
 
-    const form = emailInput.closest("form");
-    expect(form).toBeTruthy();
-    fireEvent.submit(form as HTMLFormElement);
+    fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
 
     await waitFor(() => {
       expect(emailInput.getAttribute("aria-invalid")).toBe("true");
