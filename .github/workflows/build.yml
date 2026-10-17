@@ -43,6 +43,10 @@ jobs:
           tags: tanstack-start-template:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Optional: enables Sentry source-map upload during the image build
+          # (vite.config.ts skips the plugin when the token is absent/empty).
+          secrets: |
+            sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
       - name: Check image size
         run: |
           SIZE=$(docker image inspect --format '{{.Size}}' tanstack-start-template:latest)

@@ -4,7 +4,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 
 import * as schema from "#/db/schema";
-import { listAccounts } from "#/features/auth/accounts";
+import { getAuthProviders, listAccounts } from "#/features/auth/accounts";
 import { getCurrentUser } from "#/features/auth/session";
 import { handleDeleteNote } from "#/features/notes/records.server";
 import { createNote, deleteNote, listNotes } from "#/features/notes/server-fns";
@@ -106,6 +106,14 @@ describe("server-function authorization", () => {
 
       expect((await call(getCurrentUser, undefined, "GET")).error).toBeUndefined();
     });
+
+    // Same deliberately session-optional contract: the login page asks for the Google button's
+    // availability before anyone is signed in.
+    it("answers the providers lookup with no session, so a rewire to requireSession would fail", async () => {
+      vi.mocked(auth.api.getSession).mockResolvedValue(null);
+
+      expect((await call(getAuthProviders, undefined, "GET")).error).toBeUndefined();
+    });
   });
 
   /**
@@ -135,11 +143,7 @@ describe("server-function authorization", () => {
 
       const refused = await refusalFrom(
         seam(() =>
-          handleDeleteNote(
-            { id: 2_147_483_647 },
-            { id: "usr_authz", email: "x@y.z" },
-            database as never
-          )
+          handleDeleteNote({ id: 2_147_483_647 }, { id: "usr_authz", email: "x@y.z" }, database)
         ),
         {}
       );

@@ -4,6 +4,7 @@ import {
   createTableRelationsHelpers,
   getTableColumns,
 } from "drizzle-orm";
+import { getTableConfig } from "drizzle-orm/pg-core";
 import * as schema from "#/db/schema";
 import {
   notes,
@@ -24,6 +25,21 @@ describe("Database Schema Definitions", () => {
     expect(columns.title.name).toBe("title");
     expect(columns.userId.name).toBe("user_id");
     expect(columns.createdAt.name).toBe("created_at");
+  });
+
+  it("cannot sort on a null createdAt, so the column is not null", () => {
+    expect(getTableColumns(notes).createdAt.notNull).toBe(true);
+  });
+
+  it("indexes notes by user and creation time, so a dashboard load is not a seq scan", () => {
+    const index = getTableConfig(notes).indexes.find(
+      ({ config }) => config.name === "notes_user_id_created_at_idx"
+    );
+    expect(index).toBeDefined();
+    expect(index?.config.columns.map(column => (column as { name?: string }).name)).toEqual([
+      "user_id",
+      "created_at",
+    ]);
   });
 
   it("defines auth schema tables and column names", () => {

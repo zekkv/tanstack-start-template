@@ -9,6 +9,7 @@ import { authClient } from "#/lib/auth-client";
 import { FormError } from "#/components/custom/form-error";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
+import type { OtpFlow } from "#/features/auth/components/use-otp-code";
 
 const schema = z.object({
   otp: z.string().length(6, "Enter the 6-digit code").regex(/^\d+$/, "Code must be digits only"),
@@ -16,12 +17,13 @@ const schema = z.object({
 
 interface VerifyOtpFormProps extends Omit<React.ComponentProps<"div">, "children"> {
   email: string;
-  flow: "sign-in" | "sign-up";
+  flow: OtpFlow;
 }
 
 export function VerifyOtpForm({ email, flow, className, ...props }: VerifyOtpFormProps) {
   const navigate = useNavigate();
   const [showPasskeyPrompt, setShowPasskeyPrompt] = useState(false);
+  const [resent, setResent] = useState(false);
 
   const form = useForm({
     defaultValues: { otp: "" },
@@ -54,6 +56,17 @@ export function VerifyOtpForm({ email, flow, className, ...props }: VerifyOtpFor
     onError: error => form.setErrorMap({ onSubmit: { form: error.message, fields: {} } }),
   });
 
+  // The same `type` the original send used: both the /login and /signup buttons request a
+  // sign-in code, so the resend does too, regardless of which flow routed the visitor here.
+  const resendCode = useMutation({
+    mutationFn: async () => {
+      const { error } = await authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
+      if (error) throw new Error(error.message ?? "Failed to resend code. Try again.");
+    },
+    onSuccess: () => setResent(true),
+    onError: error => form.setErrorMap({ onSubmit: { form: error.message, fields: {} } }),
+  });
+
   if (showPasskeyPrompt) {
     return (
       <form.Subscribe selector={s => s.errorMap.onSubmit}>
@@ -82,7 +95,8 @@ export function VerifyOtpForm({ email, flow, className, ...props }: VerifyOtpFor
           <div className="flex flex-col items-center gap-1.5 text-center">
             <h1 className="font-heading text-2xl font-semibold tracking-tight">Check your email</h1>
             <FieldDescription>
-              We sent a 6-digit code to <strong>{email}</strong>
+              {resent ? "A new code was sent to " : "We sent a 6-digit code to "}
+              <strong>{email}</strong>
             </FieldDescription>
           </div>
 
@@ -124,6 +138,17 @@ export function VerifyOtpForm({ email, flow, className, ...props }: VerifyOtpFor
               </Field>
             )}
           </form.Subscribe>
+
+          <Field>
+            <Button
+              variant="ghost"
+              type="button"
+              disabled={resendCode.isPending}
+              onClick={() => resendCode.mutate()}
+            >
+              {resendCode.isPending ? "Sending a new code..." : "Resend code"}
+            </Button>
+          </Field>
 
           <FieldDescription className="text-center">
             Wrong email? <Link to={flow === "sign-up" ? "/signup" : "/login"}>Go back</Link>

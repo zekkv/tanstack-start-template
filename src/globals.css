@@ -23,10 +23,10 @@
   --muted-foreground: oklch(0.52 0 0);
   --accent: oklch(0.965 0 0);
   --accent-foreground: oklch(0.16 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: oklch(0.539 0.204 27.325);
   --destructive-foreground: oklch(0.99 0.01 240);
-  --border: oklch(0.92 0 0);
-  --input: oklch(0.92 0 0);
+  --border: oklch(0.65 0 0);
+  --input: oklch(0.65 0 0);
   --ring: oklch(0.556 0 0);
   --popover: var(--card);
   --popover-foreground: var(--card-foreground);
@@ -118,7 +118,11 @@ body,
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    /* The focus outline is the one ring this file owns: full opacity, because a 50%-alpha
+       ring can never reach 3:1 against a light background (a mid-gray has a ~1.9:1 ceiling).
+       The vendored components' `ring-ring/50` classes were changed to full `ring-ring` for
+       the same reason. */
+    @apply border-border outline-ring;
   }
 
   body {

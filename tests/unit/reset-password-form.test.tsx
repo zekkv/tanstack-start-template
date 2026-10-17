@@ -12,6 +12,13 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => mockNavigate,
 }));
 
+vi.mock("sonner", () => ({
+  toast: {
+    error: vi.fn<(message: string) => void>(),
+    success: vi.fn<(message: string) => void>(),
+  },
+}));
+
 vi.mock("#/lib/auth-client", () => ({
   authClient: {
     requestPasswordReset: vi
@@ -56,12 +63,16 @@ describe("ResetPasswordForm component", () => {
     await user.type(screen.getByLabelText(/new password/i), "long-enough-pass1!");
     await user.click(screen.getByRole("button", { name: /save password/i }));
 
+    // The toast fires before the navigation, and the navigation is the last effect — so its
+    // call implies the toast already happened; assert the rest after the wait resolves.
     await waitFor(() => {
-      expect(authClient.resetPassword).toHaveBeenCalledWith({
-        newPassword: "long-enough-pass1!",
-        token: "tok-123",
-      });
       expect(mockNavigate).toHaveBeenCalledWith({ to: "/login" });
+    });
+    const { toast } = await import("sonner");
+    expect(toast.success).toHaveBeenCalledWith("Password updated — sign in.");
+    expect(authClient.resetPassword).toHaveBeenCalledWith({
+      newPassword: "long-enough-pass1!",
+      token: "tok-123",
     });
   });
 

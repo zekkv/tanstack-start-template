@@ -21,6 +21,16 @@ describe("validateUploadRequest", () => {
     ).toBe("Unsupported file type");
   });
 
+  test("rejects svg uploads", () => {
+    expect(
+      validateUploadRequest({
+        filename: "logo.svg",
+        contentType: "image/svg+xml",
+        size: 1024,
+      })
+    ).toBe("Unsupported file type");
+  });
+
   test("rejects file over 10MB", () => {
     expect(
       validateUploadRequest({

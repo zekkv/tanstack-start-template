@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 
+import type { Database } from "#/db";
 import * as schema from "#/db/schema";
 
 export type SeedUser = typeof schema.user.$inferInsert;
@@ -39,8 +40,6 @@ export const seedNotes: SeedNote[] = [
     userId: "user-demo-1",
   },
 ];
-
-export type Database = ReturnType<typeof drizzle<typeof schema>>;
 
 /**
  * Executes idempotent insertion of seed users and default notes. Every caller — the seed CLI,

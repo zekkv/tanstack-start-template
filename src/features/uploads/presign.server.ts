@@ -2,7 +2,7 @@ import { env } from "#/env";
 import { logger } from "#/lib/logger";
 import { getStorageClient, safeExtension, validateUploadRequest } from "#/lib/storage.server";
 import type { UploadRequest } from "#/lib/storage.server";
-import { ServiceUnavailableError, UnprocessableEntityError } from "#/features/auth/session";
+import { ServiceUnavailableError, UnprocessableEntityError } from "#/lib/http-errors";
 import type { SessionUser } from "#/features/auth/session";
 
 /**

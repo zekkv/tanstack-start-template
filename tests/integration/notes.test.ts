@@ -24,14 +24,10 @@ const otherUser: SessionUser = {
 describe("Notes Server Logic (Database Integration)", () => {
   let pool: Pool;
   let db: ReturnType<typeof drizzle<typeof schema>>;
-  // The handlers are typed against the app's Bun-SQL database; the suite drives them through
-  // node-postgres, which is structurally incompatible only in its driver internals.
-  let database: never;
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: process.env.DATABASE_URL });
     db = drizzle(pool, { schema });
-    database = db as never;
   });
 
   afterAll(async () => {
@@ -48,13 +44,13 @@ describe("Notes Server Logic (Database Integration)", () => {
 
   describe("handleListNotes", () => {
     it("returns user notes ordered by createdAt desc and filters other users", async () => {
-      const note1 = await handleCreateNote({ title: "First Note" }, testUser, database);
-      const note2 = await handleCreateNote({ title: "Second Note" }, testUser, database);
+      const note1 = await handleCreateNote({ title: "First Note" }, testUser, db);
+      const note2 = await handleCreateNote({ title: "Second Note" }, testUser, db);
 
       // Create note for another user
-      await handleCreateNote({ title: "Other User Note" }, otherUser, database);
+      await handleCreateNote({ title: "Other User Note" }, otherUser, db);
 
-      const result = await handleListNotes(testUser, database);
+      const result = await handleListNotes(testUser, db);
       expect(result).toHaveLength(2);
       expect(result[0].id).toBe(note2.id);
       expect(result[0].title).toBe("Second Note");
@@ -65,27 +61,27 @@ describe("Notes Server Logic (Database Integration)", () => {
 
   describe("handleCreateNote", () => {
     it("validates and rejects empty title", async () => {
-      await expect(handleCreateNote({ title: "   " }, testUser, database)).rejects.toThrow(
+      await expect(handleCreateNote({ title: "   " }, testUser, db)).rejects.toThrow(
         "Title is required"
       );
     });
 
     it("validates and rejects title over 255 characters", async () => {
-      await expect(
-        handleCreateNote({ title: "a".repeat(256) }, testUser, database)
-      ).rejects.toThrow("Title must be 255 characters or fewer");
+      await expect(handleCreateNote({ title: "a".repeat(256) }, testUser, db)).rejects.toThrow(
+        "Title must be 255 characters or fewer"
+      );
     });
 
     it("accepts a title of exactly 255 characters", async () => {
       const title255 = "a".repeat(255);
-      const created = await handleCreateNote({ title: title255 }, testUser, database);
+      const created = await handleCreateNote({ title: title255 }, testUser, db);
       expect(created).toBeDefined();
       expect(created.title).toBe(title255);
       expect(created.userId).toBe(testUser.id);
     });
 
     it("inserts note with trimmed title and returns the new note", async () => {
-      const result = await handleCreateNote({ title: "  Feed the cat  " }, testUser, database);
+      const result = await handleCreateNote({ title: "  Feed the cat  " }, testUser, db);
       expect(result).toBeDefined();
       expect(result.title).toBe("Feed the cat");
       expect(result.userId).toBe(testUser.id);
@@ -95,30 +91,30 @@ describe("Notes Server Logic (Database Integration)", () => {
 
   describe("handleDeleteNote", () => {
     it("rejects a note that does not exist", async () => {
-      await expect(handleDeleteNote({ id: 999999 }, testUser, database)).rejects.toThrow(
+      await expect(handleDeleteNote({ id: 999999 }, testUser, db)).rejects.toThrow(
         "Note not found"
       );
     });
 
     it("rejects a note that belongs to another user without deleting it", async () => {
-      const otherNote = await handleCreateNote({ title: "Other Note" }, otherUser, database);
+      const otherNote = await handleCreateNote({ title: "Other Note" }, otherUser, db);
 
-      await expect(handleDeleteNote({ id: otherNote.id }, testUser, database)).rejects.toThrow(
+      await expect(handleDeleteNote({ id: otherNote.id }, testUser, db)).rejects.toThrow(
         "Note not found"
       );
 
-      const otherNotes = await handleListNotes(otherUser, database);
+      const otherNotes = await handleListNotes(otherUser, db);
       expect(otherNotes).toHaveLength(1);
       expect(otherNotes[0].id).toBe(otherNote.id);
     });
 
     it("deletes note and returns success: true when matched", async () => {
-      const note = await handleCreateNote({ title: "Old note" }, testUser, database);
+      const note = await handleCreateNote({ title: "Old note" }, testUser, db);
 
-      const result = await handleDeleteNote({ id: note.id }, testUser, database);
+      const result = await handleDeleteNote({ id: note.id }, testUser, db);
       expect(result).toEqual({ success: true });
 
-      const remaining = await handleListNotes(testUser, database);
+      const remaining = await handleListNotes(testUser, db);
       expect(remaining).toHaveLength(0);
     });
   });

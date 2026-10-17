@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { SignupPage } from "#/features/auth/components/signup-page";
+import { getAuthProviders } from "#/features/auth/accounts";
 import { createSeoHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/signup")({
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/signup")({
       throw redirect({ to: "/dashboard" });
     }
   },
+  loader: () => getAuthProviders(),
   head: () =>
     createSeoHead({
       title: "Sign Up — TanStack Start Template",

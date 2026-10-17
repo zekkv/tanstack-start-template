@@ -12,6 +12,14 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn<() => void>(),
 }));
 
+// Toast feedback comes straight from sonner, not the form state
+vi.mock("sonner", () => ({
+  toast: {
+    error: vi.fn<(message: string) => void>(),
+    success: vi.fn<(message: string) => void>(),
+  },
+}));
+
 // Mock better-auth client
 vi.mock("#/lib/auth-client", () => ({
   authClient: {
@@ -34,18 +42,21 @@ vi.mock("#/lib/auth-client", () => ({
   },
 }));
 
+/** The WebAuthn probe the form guards; resolved per test. */
+const isConditionalMediationAvailable = vi.fn<() => Promise<boolean>>().mockResolvedValue(false);
+
 // Mock PublicKeyCredential for jsdom environment
 if (typeof globalThis.PublicKeyCredential === "undefined") {
-  // @ts-ignore
-  globalThis.PublicKeyCredential = {
-    isConditionalMediationAvailable: vi.fn<() => Promise<boolean>>().mockResolvedValue(false),
-  };
+  Object.defineProperty(globalThis, "PublicKeyCredential", {
+    value: { isConditionalMediationAvailable },
+    configurable: true,
+  });
 }
 
-function renderForm() {
+function renderForm({ googleEnabled = true }: { googleEnabled?: boolean } = {}) {
   return render(
     <QueryClientProvider client={new QueryClient()}>
-      <LoginForm />
+      <LoginForm googleEnabled={googleEnabled} />
     </QueryClientProvider>
   );
 }
@@ -60,6 +71,13 @@ describe("LoginForm component", () => {
     expect(screen.getByRole("button", { name: /^sign in$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /email me a sign-in code/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /sign in with passkey/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /continue with google/i })).toBeTruthy();
+  });
+
+  it("hides the Google option when Google is not configured", () => {
+    renderForm({ googleEnabled: false });
+
+    expect(screen.queryByRole("button", { name: /continue with google/i })).toBeNull();
   });
 
   it("shows validation error for invalid email on submit", async () => {
@@ -164,6 +182,54 @@ describe("LoginForm component", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Too many requests")).toBeTruthy();
+    });
+  });
+
+  it("reports a refused Google sign-in as a toast instead of dropping it", async () => {
+    const { authClient } = await import("#/lib/auth-client");
+    vi.mocked(authClient.signIn.social).mockResolvedValueOnce({
+      data: null,
+      error: {
+        message: "Provider not configured",
+        status: 503,
+        statusText: "Unavailable",
+      } as never,
+    });
+
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.click(screen.getByRole("button", { name: /continue with google/i }));
+
+    expect(authClient.signIn.social).toHaveBeenCalledWith({
+      provider: "google",
+      callbackURL: "/",
+    });
+    const { toast } = await import("sonner");
+    expect(toast.error).toHaveBeenCalledWith("Provider not configured");
+  });
+
+  it("starts passkey autofill only after the email field is first focused", async () => {
+    const { authClient } = await import("#/lib/auth-client");
+    isConditionalMediationAvailable.mockResolvedValue(true);
+    const user = userEvent.setup();
+    renderForm();
+
+    // Nothing fires on a bare page view: the passkey endpoint is only touched on engagement.
+    expect(authClient.signIn.passkey).not.toHaveBeenCalled();
+
+    await user.click(screen.getByLabelText(/email/i));
+
+    await waitFor(() => {
+      expect(authClient.signIn.passkey).toHaveBeenCalledWith(
+        expect.objectContaining({ autoFill: true })
+      );
+    });
+
+    // One-shot: focussing again does not re-poll.
+    await user.click(screen.getByLabelText(/email/i));
+    await waitFor(() => {
+      expect(authClient.signIn.passkey).toHaveBeenCalledTimes(1);
     });
   });
 });

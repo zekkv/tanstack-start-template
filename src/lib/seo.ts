@@ -1,5 +1,3 @@
-import { env } from "#/env";
-
 export interface SeoHeadOptions {
   title?: string;
   description?: string;
@@ -16,22 +14,16 @@ export function getBaseUrl(explicitUrl?: string): string {
     return explicitUrl.replace(/\/+$/, "");
   }
 
-  let serverUrl: string | undefined;
+  // Client: the rendered origin is the truth. Server: build/deploy env. Do not import `#/env`
+  // here — this module is client-reachable from every route's head(), and env.ts must stay
+  // server code (the browser would pull the whole server env schema into the bundle).
+  const serverUrl =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : // oxlint-disable-next-line node/no-process-env -- SSR-only resolution; the client never reaches this branch
+        process.env.SERVER_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000";
 
-  if (typeof window !== "undefined" && window.location.origin) {
-    serverUrl = window.location.origin;
-  }
-
-  if (!serverUrl) {
-    try {
-      serverUrl = env.SERVER_URL || env.BETTER_AUTH_URL;
-    } catch {
-      // Ignored on client-side access
-    }
-  }
-
-  const resolved = serverUrl || "http://localhost:3000";
-  return resolved.replace(/\/+$/, "");
+  return serverUrl.replace(/\/+$/, "");
 }
 
 export function createSeoHead(options: SeoHeadOptions) {

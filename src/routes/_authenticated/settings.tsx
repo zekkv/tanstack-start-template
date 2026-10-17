@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { SettingsPage, SettingsPageSkeleton } from "#/features/auth/components/settings-page";
 import { accountOptions } from "#/features/auth/accounts";
 import { createSeoHead } from "#/lib/seo";
 
@@ -13,6 +12,7 @@ export const Route = createFileRoute("/_authenticated/settings")({
       title: "Settings — TanStack Start Template",
       noindex: true,
     }),
-  pendingComponent: SettingsPageSkeleton,
-  component: SettingsPage,
-});
+  // The view is a dynamic import: see src/features/auth/components/lazy-route.ts.
+}).lazy(() =>
+  import("#/features/auth/components/lazy-route").then(module => module.settingsLazyRoute)
+);

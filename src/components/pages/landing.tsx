@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { toast } from "sonner";
+
 import { Page } from "#/components/custom/page";
-import { Button, buttonVariants } from "#/components/ui/button";
+import { Button } from "#/components/ui/button";
 
 const REPO_URL = "https://github.com/zek01svg/tanstack-start-template";
 const DOCS_URL = "https://tanstack.com/start/latest/docs/framework/react/overview";
@@ -46,7 +49,7 @@ export function LandingPage() {
       <ContentsSection />
       <footer className="mt-24 flex flex-col gap-4 border-t border-border py-8 font-mono text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <span>MIT license</span>
-        <nav className="flex gap-6">
+        <nav aria-label="Footer" className="flex gap-6">
           <a
             href={DOCS_URL}
             target="_blank"
@@ -88,14 +91,10 @@ function HeroSection() {
         </p>
 
         <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
-          <a
-            href={DOCS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={buttonVariants({ size: "lg" })}
-          >
+          {/* Primary CTA is the in-app path (sign up); GitHub stays as the external secondary. */}
+          <Button size="lg" render={<Link to="/signup" />}>
             Get started
-          </a>
+          </Button>
           <a
             href={REPO_URL}
             target="_blank"
@@ -116,9 +115,13 @@ function QuickstartBlock() {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(QUICKSTART);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    try {
+      await navigator.clipboard.writeText(QUICKSTART);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("Could not copy to clipboard");
+    }
   }
 
   return (

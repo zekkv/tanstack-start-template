@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ValidationError } from "#/features/auth/session";
+import { ValidationError } from "#/lib/http-errors";
 
 export const UploadRequestSchema = z.object({
   filename: z.string().min(1),

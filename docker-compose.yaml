@@ -1,17 +1,6 @@
 name: tanstack-start-template
 
 services:
-  redis:
-    image: redis:7-alpine
-    container_name: redis
-    ports:
-      - 6379:6379
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   mailpit:
     image: axllent/mailpit:v1.31.1
     container_name: mailpit
@@ -76,6 +65,22 @@ services:
         mc mb --ignore-existing minio/$$MC_BUCKET;
         exit 0;
       "
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrate
+    env_file:
+      - path: .env.example
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   tanstack-start-template:
     build:
       context: .
@@ -84,13 +89,21 @@ services:
     ports:
       - 3000:3000
     env_file:
-      - .env.example
+      - path: .env.example
+      - path: .env
+        required: false
+    environment:
+      # In-container addresses: Postgres/MinIO/mailpit are sibling services, not localhost.
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/app
+      MINIO_ENDPOINT: http://minio:9000
+      # Mailpit relays all containerized mail (matches SMTP_URL's local-capture role in .env.example).
+      SMTP_URL: smtp://mailpit:1025
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       minio:
         condition: service_healthy
       minio_init:
         condition: service_completed_successfully
-      redis:
-        condition: service_healthy

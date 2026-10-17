@@ -1,6 +1,6 @@
 # Deployment
 
-This template is **opinionated towards [Bun](https://bun.sh/)**. It builds with [Nitro](https://nitro.build/) using the `preset: "bun"` configuration and runs on Bun (`oven/bun:1-alpine`) in both development and production containers. Runtime code uses Bun-native APIs (`bun:sql`, `Bun.s3`, and `Bun.RedisClient`).
+This template is **opinionated towards [Bun](https://bun.sh/)**. It builds with [Nitro](https://nitro.build/) using the `preset: "bun"` configuration and runs on Bun (`oven/bun:1-alpine`) in both development and production containers. Runtime code uses Bun-native APIs (`bun:sql` and `Bun.s3`).
 
 ## Changing the deployment target
 
@@ -16,7 +16,7 @@ nitro({
 Or set the `NITRO_PRESET` environment variable at build time instead of editing the file.
 
 > [!NOTE]
-> **Bun-Native Portability**: Because this template is opinionated towards Bun, runtime features rely on Bun's built-in APIs (`bun:sql`, `Bun.s3`, `Bun.RedisClient`). Any container platform (Docker, AWS ECS/Fargate, GCP Cloud Run, Azure Container Apps, Railway, Fly.io, Render) runs the Bun container without modification. If targeting non-Bun serverless environments (such as Node-only Vercel functions or Cloudflare Workers), replace the Bun-native drivers with platform-specific alternatives (e.g. `@neondatabase/serverless` for Postgres, `@aws-sdk/client-s3` for S3, or `@upstash/redis` for Redis).
+> **Bun-Native Portability**: Because this template is opinionated towards Bun, runtime features rely on Bun's built-in APIs (`bun:sql`, `Bun.s3`). Any container platform (Docker, AWS ECS/Fargate, GCP Cloud Run, Azure Container Apps, Railway, Fly.io, Render) runs the Bun container without modification. If targeting non-Bun serverless environments (such as Node-only Vercel functions or Cloudflare Workers), replace the Bun-native drivers with platform-specific alternatives (e.g. `@neondatabase/serverless` for Postgres or `@aws-sdk/client-s3` for S3).
 
 ---
 
@@ -27,9 +27,13 @@ Or set the `NITRO_PRESET` environment variable at build time instead of editing 
 The included `Dockerfile` and `docker-compose.yaml` cover this. No preset change needed — Nitro builds with `preset: "bun"` and the container runs `bun --bun .output/server/index.mjs` on port 3000.
 
 ```bash
-docker build -t my-app .
+docker build -t my-app --secret id=sentry_auth_token,env=SENTRY_AUTH_TOKEN .
 docker run -p 3000:3000 --env-file .env my-app
 ```
+
+`docker-compose.yaml` is the full-stack variant: a one-shot `migrate` service (the Dockerfile exposes its builder stage as a `migrate` target) applies migrations and the app service waits for it, then the app starts with the in-container service URLs overridden (`DATABASE_URL`, `MINIO_ENDPOINT`, and SMTP pointing at the sibling Postgres/MinIO/Mailpit containers). Both services read `.env.example` and then your optional `.env` on top, so a fresh clone is `cp .env.example .env` plus a real `BETTER_AUTH_SECRET` before `docker compose up -d --build`. The runner stage also has a `HEALTHCHECK` that calls `/api/health`, which pings the database and reports 503 when it cannot reach it.
+
+The source-map upload in the build is optional: pass `SENTRY_AUTH_TOKEN` as the BuildKit secret `sentry_auth_token` (as in the command above; in GitHub Actions set the `SENTRY_AUTH_TOKEN` repo secret and the Build workflow wires it the same way). Without it, the build skips the upload.
 
 Works on any platform that runs containers: AWS ECS/Fargate, Azure Container Apps, GCP Cloud Run, Railway, Fly.io, Render, etc. See the platform-specific sections below for environment and port config.
 
@@ -145,9 +149,9 @@ Netlify also auto-detects this from the build environment. Same edge runtime lim
 
 **Resend**: Works everywhere — it's an HTTP API. Set `RESEND_API_KEY` and `EMAIL_FROM`.
 
-**Redis**: Set `REDIS_URL` (e.g. `redis://localhost:6379`). Bun's native Redis client (`Bun.RedisClient`) connects directly to Redis/Valkey instances without intermediary HTTP proxies.
+**SMTP**: For local and E2E runs, set `SMTP_URL` (e.g. `smtp://127.0.0.1:1025` against a Mailpit capture server) to relay email through SMTP instead of Resend. `nodemailer` is imported only inside that branch. Leave it unset in production — Resend's HTTP API is the default.
 
-**Sentry**: Set `VITE_SENTRY_DSN`. The plugin only runs source map uploads at build time when `SENTRY_AUTH_TOKEN` is set; runtime error capture works from the DSN alone.
+**Sentry**: Set `VITE_SENTRY_DSN`. Source map uploads run at build time only when `SENTRY_AUTH_TOKEN` is set and is not the committed placeholder; on container or CI builds pass it as the `sentry_auth_token` BuildKit secret (see Docker above). Runtime error capture works from the DSN alone.
 
 ---
 
@@ -160,3 +164,5 @@ bun run db:migrate
 ```
 
 This applies unapplied SQL migrations from `src/db/drizzle/` in sequential order using Drizzle Kit. Avoid using `db:push` in production environments as it does not record migration history.
+
+On container deployments, build the Dockerfile's `migrate` target and run it as a one-shot container instead of shipping a migration step into every app instance — `docker-compose.yaml` already does exactly that (the `migrate` service, which the app service waits on).

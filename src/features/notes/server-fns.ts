@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { queryOptions } from "@tanstack/react-query";
 
 import { requireSession } from "#/features/auth/session";
 import { parseCreateNote, parseDeleteNote } from "#/features/notes/schema";
@@ -18,6 +19,15 @@ export const listNotes = createServerFn({ method: "GET" })
     const [{ db }, { handleListNotes }] = await loadServer();
     return handleListNotes(context.user, db);
   });
+
+/** Mirrors `accountOptions` — one wrapper the dashboard loader and component share. */
+export function noteOptions() {
+  return queryOptions({
+    queryKey: ["notes"],
+    queryFn: () => listNotes(),
+    retry: false,
+  });
+}
 
 export const createNote = createServerFn({ method: "POST" })
   .middleware([requireSession])

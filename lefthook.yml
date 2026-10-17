@@ -10,3 +10,8 @@ pre-commit:
       glob: "*.{js,ts,jsx,tsx,md,css,yml,yaml,json}"
       run: bun oxfmt --write {staged_files}
       stage_fixed: true
+
+pre-push:
+  jobs:
+    - name: verification
+      run: bun run check

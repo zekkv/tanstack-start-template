@@ -7,14 +7,18 @@ A feature runs through five layers: a schema, server-only record handlers, a ser
 Add the table to `src/db/schema.ts`. The notes table shows the shape: a primary key, the payload, a `userId` foreign key to Better Auth's `user` table, and a timestamp.
 
 ```ts
-export const notes = pgTable("notes", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
+export const notes = pgTable(
+  "notes",
+  {
+    id: serial("id").primaryKey(),
+    title: text("title").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [index("notes_user_id_created_at_idx").on(table.userId, table.createdAt)]
+);
 ```
 
 Generate the migration and apply it. The repository rules are in [Database schemas and migrations](../AGENTS.md#database-schemas-and-migrations) and [Database Management & Migrations](./DEVELOPMENT.md#database-management--migrations).
@@ -26,12 +30,12 @@ bun run db:migrate
 
 ## 2. Define the input schema
 
-Create `src/features/<feature>/schema.ts` with the Zod schema and a parser. The parser throws a `ValidationError` (400) carrying `issues[0].message`, so the route or toast shows one sentence instead of Zod's JSON dump.
+Create `src/features/<feature>/schema.ts` with the Zod schema and a parser. The parser throws a `ValidationError` (400) from `src/lib/http-errors.ts` carrying `issues[0].message`, so the route or toast shows one sentence instead of Zod's JSON dump.
 
 ```ts
 import { z } from "zod";
 
-import { ValidationError } from "#/features/auth/session";
+import { ValidationError } from "#/lib/http-errors";
 
 export const CreateNoteInput = z.object({
   title: z
@@ -50,23 +54,23 @@ export function parseCreateNote(data: unknown) {
 
 ## 3. Write the record handlers
 
-Create `src/features/<feature>/records.server.ts`. The `.server.ts` suffix marks a module that nothing client-reachable imports; `server-fns.ts` reaches it through a dynamic `import()`. The handlers take the session user and the database as parameters, so integration tests can pass a Testcontainers connection.
+Create `src/features/<feature>/records.server.ts`. The `.server.ts` suffix marks a module that nothing client-reachable imports; `server-fns.ts` reaches it through a dynamic `import()`. The handlers take the session user and the database as parameters — typed by the shared `Database` seam in `src/db/index.ts` — so integration tests can pass a Testcontainers connection without casting.
 
 ```ts
-import { eq, desc } from "drizzle-orm";
-import type { db as Db } from "#/db";
+import { eq, desc, and } from "drizzle-orm";
+
+import type { Database } from "#/db";
 import { notes } from "#/db/schema";
 import type { SessionUser } from "#/features/auth/session";
 import { parseCreateNote } from "#/features/notes/schema";
-
-type Database = typeof Db;
 
 export async function handleListNotes(user: SessionUser, database: Database) {
   return database
     .select()
     .from(notes)
     .where(eq(notes.userId, user.id))
-    .orderBy(desc(notes.createdAt));
+    .orderBy(desc(notes.createdAt), desc(notes.id))
+    .limit(100);
 }
 
 export async function handleCreateNote(data: unknown, user: SessionUser, database: Database) {
@@ -76,7 +80,7 @@ export async function handleCreateNote(data: unknown, user: SessionUser, databas
 }
 ```
 
-A handler that cannot find its row throws `NotFoundError`; the session middleware sets the 404 on the response and rethrows, which is what a direct HTTP caller and an in-app caller each observe. `ValidationError`, `UnauthorizedError`, `UnprocessableEntityError`, and `ServiceUnavailableError` in `src/features/auth/session.ts` cover the other refusal statuses.
+A handler that cannot find its row throws `NotFoundError`; the session middleware sets the 404 on the response and rethrows, which is what a direct HTTP caller and an in-app caller each observe. The other refusal classes — `ValidationError`, `UnauthorizedError`, `UnprocessableEntityError`, and `ServiceUnavailableError` — live beside it in `src/lib/http-errors.ts`.
 
 ## 4. Expose the server functions
 
@@ -104,38 +108,40 @@ The middleware pipeline checks the session before the handler runs, so the handl
 
 ## 5. Wire the route and the view
 
-A route module declares `Route` and nothing else; the view is a component under `src/features/<feature>/components/`. `template/route-declaration-only` and `template/route-view-source` enforce both. `src/routes/_authenticated/dashboard.tsx` is the reference pair: the route loads the notes, and `src/features/dashboard/components/page.tsx` renders them.
+A route module declares `Route` and nothing else; the view is a component under `src/features/<feature>/components/`. `template/route-declaration-only` and `template/route-view-source` enforce both. `src/routes/_authenticated/dashboard.tsx` is the reference pair: the route prefetches the data through `noteOptions()`, and `src/features/dashboard/components/page.tsx` renders it.
 
 ```tsx
 // src/routes/_authenticated/dashboard.tsx
 import { createFileRoute } from "@tanstack/react-router";
-import { DashboardPage } from "#/features/dashboard/components/page";
-import { listNotes } from "#/features/notes/server-fns";
+import { noteOptions } from "#/features/notes/server-fns";
+import { createSeoHead } from "#/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  loader: async () => {
-    const notes = await listNotes();
-    return { notes };
+  loader: async ({ context }) => {
+    await context.queryClient.ensureQueryData(noteOptions());
   },
-  component: DashboardPage,
-});
+  head: () => createSeoHead({ title: "Dashboard — TanStack Start Template", noindex: true }),
+  // The view is a dynamic import: see src/features/<feature>/components/lazy-route.ts.
+}).lazy(() =>
+  import("#/features/dashboard/components/lazy-route").then(module => module.dashboardLazyRoute)
+);
 ```
 
-The view reads the loader data through `getRouteApi`:
+The view reads the query cache with the same `noteOptions()` object, so it renders from the prefetched data:
 
 ```tsx
 // src/features/dashboard/components/page.tsx
-import { getRouteApi } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 
-const routeApi = getRouteApi("/_authenticated/dashboard");
+import { noteOptions } from "#/features/notes/server-fns";
 
 export function DashboardPage() {
-  const { notes } = routeApi.useLoaderData();
+  const { data } = useQuery(noteOptions());
   // render notes
 }
 ```
 
-TanStack Router discovers the file and regenerates `src/routeTree.gen.ts`; do not edit that file by hand. After a mutation succeeds, call `router.invalidate()` so the loader refetches, as the dashboard does.
+TanStack Router discovers the file and regenerates `src/routeTree.gen.ts`; do not edit that file by hand. After a mutation succeeds, invalidate the query — `queryClient.invalidateQueries({ queryKey: noteOptions().queryKey })` — as the dashboard does.
 
 ## 6. Test the feature
 

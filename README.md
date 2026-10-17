@@ -1,12 +1,12 @@
 # TanStack Start Template
 
-A production-ready full-stack web application template built with TanStack Start, Better Auth, and Drizzle ORM. It runs on Bun-native APIs and drivers (`bun.SQL`, `Bun.s3`, `Bun.redis`).
+A production-ready full-stack web application template built with TanStack Start, Better Auth, and Drizzle ORM. It runs on Bun-native APIs and drivers (`bun.SQL`, `Bun.s3`).
 
 ## Features
 
 - **SSR & Routing**: [TanStack Start](https://tanstack.com/start) with file-based routes and type-safe navigation.
 - **Server Engine**: [Nitro](https://nitro.unjs.io/) for high-performance server-side logic.
-- **Authentication**: [Better Auth](https://better-auth.com/) — email + password (with reset and verification emails), email OTP, passkeys, and optional Google OAuth. Rate limited (20 req/60 s). Session-guarded protected routes and redirect logic included.
+- **Authentication**: [Better Auth](https://better-auth.com/) — email + password (with reset and verification emails), email OTP, passkeys, and optional Google OAuth. Rate limited at the Better Auth layer (the catch-all window is 20 req/60 s; signing in, signing up, and resetting a password have stricter per-endpoint limits). Session-guarded protected routes and redirect logic included.
 - **Database**: [Drizzle ORM](https://orm.drizzle.team/) with Bun's native SQL driver (`bun.SQL` / `drizzle-orm/bun-sql`).
 - **Account management**: `/settings` route — profile, linked providers, passkeys, and account deletion via Better Auth.
 - **File uploads**: An auth-guarded server function presigns PUT URLs with Bun's native S3 client (`Bun.s3`) for S3-compatible storage (MinIO locally; swap to AWS S3, Cloudflare R2, or Supabase Storage with an env var change).
@@ -27,7 +27,7 @@ A production-ready full-stack web application template built with TanStack Start
 ### Prerequisites
 
 - [Bun](https://bun.sh/) v1.4.2 or later
-- [Docker](https://www.docker.com/) for local services (Postgres, MinIO, Redis, Mailpit) and for the Testcontainers the integration and E2E suites start
+- [Docker](https://www.docker.com/) for local services (Postgres, MinIO, Mailpit) and for the Testcontainers the integration and E2E suites start
 
 ### Setup
 
@@ -43,12 +43,12 @@ A production-ready full-stack web application template built with TanStack Start
    cp .env.example .env
    ```
 
-   Open `.env` and fill in the required values (see the [Environment Variables Reference](./docs/DEVELOPMENT.md#environment-variables) in the Development Guide).
+   Open `.env` and fill in the required values (see the [Environment Variables Reference](./docs/DEVELOPMENT.md#environment-variables) in the Development Guide). The committed `BETTER_AUTH_SECRET` is a placeholder that fails the boot check on purpose — generate a real one (`openssl rand -base64 32`).
 
 3. **Start local services**
 
    ```bash
-   docker compose up -d postgres redis minio minio_init mailpit
+   docker compose up -d postgres minio minio_init mailpit
    ```
 
    This starts the infrastructure only; the app container binds port 3000 and would clash with the dev server. Mailpit captures the password-reset email for the E2E suite.
@@ -85,8 +85,10 @@ The template ships a `Dockerfile` and `docker-compose.yaml` for containerised de
 
 ```bash
 docker build -t tanstack-start-template .
-docker run -p 3000:3000 tanstack-start-template
+docker run -p 3000:3000 --env-file .env tanstack-start-template
 ```
+
+`docker compose up -d --build` starts the full stack instead — Postgres, MinIO, Mailpit, a one-shot `migrate` service, and then the app, with the in-container service URLs set for you. Set a real `BETTER_AUTH_SECRET` in `.env` first. See the [Deployment Guide](./docs/DEPLOYMENT.md) for hosting options and the Sentry source-map build secret.
 
 ## Documentation
 

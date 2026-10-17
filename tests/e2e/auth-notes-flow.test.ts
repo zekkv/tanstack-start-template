@@ -33,8 +33,9 @@ test.describe("Auth and Notes Lifecycle Loop", () => {
     await page.getByRole("button", { name: "Sign out" }).click();
     await page.waitForURL("/", { timeout: 10_000 });
 
-    // 3. Sign in via /login
-    await page.goto("/login");
+    // 3. Sign in via /login — reached through the header's "Sign in" link, not page.goto
+    await page.getByRole("link", { name: "Sign in" }).click();
+    await page.waitForURL(/\/login/, { timeout: 10_000 });
     await waitForHydration(page);
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible({
       timeout: 10_000,
@@ -46,8 +47,9 @@ test.describe("Auth and Notes Lifecycle Loop", () => {
     // After sign-in, redirect completes to home page
     await page.waitForURL("/", { timeout: 10_000 });
 
-    // 4. Navigate to /dashboard
-    await page.goto("/dashboard");
+    // 4. Navigate to /dashboard through the header's "Dashboard" link
+    await page.getByRole("link", { name: "Dashboard" }).click();
+    await page.waitForURL(/\/dashboard/, { timeout: 10_000 });
     await waitForHydration(page);
     await expect(page.getByRole("heading", { name: `Welcome, ${testEmail}` })).toBeVisible({
       timeout: 10_000,
@@ -63,9 +65,13 @@ test.describe("Auth and Notes Lifecycle Loop", () => {
       timeout: 10_000,
     });
 
-    // 6. Delete the note
+    // 6. Delete the note — the destructive action confirms inside an AlertDialog
     const deleteButton = page.getByRole("button", { name: `Delete note: ${noteTitle}` });
     await deleteButton.click();
+
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: "Delete", exact: true }).click();
 
     // Verify note is removed from table
     await expect(page.getByRole("cell", { name: noteTitle, exact: true })).not.toBeVisible({

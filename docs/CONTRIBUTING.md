@@ -24,15 +24,13 @@ chore: pin Bun version in CI
 Run the full verification suite before opening a PR:
 
 ```bash
-bun run lint:check
-bun run type:check
-bun run format:check
+bun run check       # format:check + lint:check + type:check (lint:fix / format:fix when needed)
 bun run test:unit
 bun run test:integration
 bun run test:e2e
 ```
 
-New features need at least one unit test covering the core behaviour. New routes need at least one Playwright smoke test verifying the happy path and any redirect guards. For detailed test tier rules and running targeted tests, see the [Testing Guide in DEVELOPMENT.md](./DEVELOPMENT.md#testing-guide).
+`bun run check` is also the lefthook `pre-push` job, so fixing its failures locally beats a push that fails in CI. New features need at least one unit test covering the core behaviour. New routes need at least one Playwright smoke test verifying the happy path and any redirect guards. For detailed test tier rules and running targeted tests, see the [Testing Guide in DEVELOPMENT.md](./DEVELOPMENT.md#testing-guide).
 
 ## Database changes
 

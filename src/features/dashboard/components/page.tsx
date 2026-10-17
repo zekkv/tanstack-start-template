@@ -1,17 +1,29 @@
-import { getRouteApi, useRouter, Link } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
+import { Link, useRouteContext } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form-start";
 import { Trash2, Plus, Upload, CheckCircle } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { createNote, deleteNote } from "#/features/notes/server-fns";
-import { CreateNoteInput } from "#/features/notes/schema";
+import { createNote, deleteNote, noteOptions } from "#/features/notes/server-fns";
 import { createUploadUrl } from "#/features/uploads/server-fns";
+import { CreateNoteInput } from "#/features/notes/schema";
+import type { SessionUser } from "#/features/auth/session";
 import { FormError } from "#/components/custom/form-error";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
-import { FieldError } from "#/components/ui/field";
+import { FieldError, FieldLabel } from "#/components/ui/field";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "#/components/ui/alert-dialog";
 import { Skeleton } from "#/components/ui/skeleton";
 import {
   Table,
@@ -23,12 +35,23 @@ import {
 } from "#/components/ui/table";
 import { Page } from "#/components/custom/page";
 
-const routeApi = getRouteApi("/_authenticated/dashboard");
+/**
+ * The route-facing skin: the only part that touches the route tree (context user), so the page
+ * below stays a plain query-driven view that renders wherever it is mounted.
+ */
+export function DashboardRoutePage() {
+  const { user } = useRouteContext({ from: "/_authenticated/dashboard" });
+  return <DashboardPage user={user} />;
+}
 
-export function DashboardPage() {
-  const { user } = routeApi.useRouteContext();
-  const { notes } = routeApi.useLoaderData();
-  const router = useRouter();
+interface DashboardPageProps {
+  user: SessionUser;
+}
+
+export function DashboardPage({ user }: DashboardPageProps) {
+  const { data } = useQuery(noteOptions());
+  const notes = data ?? [];
+  const queryClient = useQueryClient();
 
   const form = useForm({
     defaultValues: { title: "" },
@@ -47,13 +70,13 @@ export function DashboardPage() {
       }
 
       form.reset();
-      await router.invalidate();
+      await queryClient.invalidateQueries({ queryKey: noteOptions().queryKey });
     },
   });
 
   const deleteNoteMutation = useMutation({
     mutationFn: (id: number) => deleteNote({ data: { id } }),
-    onSuccess: () => router.invalidate(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: noteOptions().queryKey }),
     onError: error => toast.error(error.message || "Failed to delete note"),
   });
 
@@ -100,14 +123,21 @@ export function DashboardPage() {
             <div className="flex gap-2">
               <form.Field name="title">
                 {field => (
-                  <Input
-                    placeholder="New note title…"
-                    value={field.state.value}
-                    onChange={e => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    aria-invalid={field.state.meta.errors.length > 0}
-                    className="flex-1"
-                  />
+                  <>
+                    {/* Placeholder-only inputs have no accessible name; the sr-only label ties it. */}
+                    <FieldLabel htmlFor="note-title" className="sr-only">
+                      Note title
+                    </FieldLabel>
+                    <Input
+                      id="note-title"
+                      placeholder="New note title…"
+                      value={field.state.value}
+                      onChange={e => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      aria-invalid={field.state.meta.errors.length > 0}
+                      className="flex-1"
+                    />
+                  </>
                 )}
               </form.Field>
               <form.Subscribe selector={s => s.isSubmitting || s.values.title.trim().length === 0}>
@@ -146,28 +176,14 @@ export function DashboardPage() {
               </TableHeader>
               <TableBody>
                 {notes.map(note => (
-                  <TableRow key={note.id}>
-                    <TableCell>{note.title}</TableCell>
-                    <TableCell>
-                      {note.createdAt ? new Date(note.createdAt).toLocaleDateString() : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end">
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="icon-sm"
-                          disabled={
-                            deleteNoteMutation.isPending && deleteNoteMutation.variables === note.id
-                          }
-                          aria-label={`Delete note: ${note.title}`}
-                          onClick={() => deleteNoteMutation.mutate(note.id)}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  <NoteRow
+                    key={note.id}
+                    note={note}
+                    deleting={
+                      deleteNoteMutation.isPending && deleteNoteMutation.variables === note.id
+                    }
+                    onDelete={done => deleteNoteMutation.mutate(note.id, { onSettled: done })}
+                  />
                 ))}
               </TableBody>
             </Table>
@@ -186,6 +202,61 @@ export function DashboardPage() {
         </div>
       </section>
     </Page>
+  );
+}
+
+interface NoteRowProps {
+  note: { id: number; title: string; createdAt?: string | Date | null };
+  deleting: boolean;
+  /** `done` closes the dialog when the deletion settles (success or failure). */
+  onDelete: (done: () => void) => void;
+}
+
+function NoteRow({ note, deleting, onDelete }: NoteRowProps) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <TableRow>
+      <TableCell>{note.title}</TableCell>
+      <TableCell>{note.createdAt ? new Date(note.createdAt).toLocaleDateString() : "—"}</TableCell>
+      <TableCell>
+        <div className="flex justify-end">
+          <AlertDialog open={open} onOpenChange={setOpen}>
+            <AlertDialogTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon-sm"
+                  aria-label={`Delete note: ${note.title}`}
+                />
+              }
+            >
+              <Trash2 className="size-4" />
+            </AlertDialogTrigger>
+            <AlertDialogContent size="sm">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete note</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Delete &ldquo;{note.title}&rdquo;? This cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  type="button"
+                  variant="destructive"
+                  disabled={deleting}
+                  onClick={() => onDelete(() => setOpen(false))}
+                >
+                  {deleting ? "Deleting…" : "Delete"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -276,19 +347,20 @@ function FileUploadCard() {
       </p>
 
       {upload.status === "success" ? (
-        <p className="mt-4 flex items-center gap-2 text-sm">
+        <output className="mt-4 flex items-center gap-2 text-sm">
           <CheckCircle className="size-4" />
           Uploaded: <code className="font-mono text-xs break-all">{upload.data}</code>
-        </p>
+        </output>
       ) : upload.status === "error" ? (
-        <p className="mt-4 text-sm text-destructive">{upload.error.message}</p>
+        <output className="mt-4 text-sm text-destructive">{upload.error.message}</output>
       ) : null}
 
       <div className="mt-4">
+        {/* Keep in sync with CONTENT_TYPE_EXTENSIONS in src/lib/storage.server.ts (minus svg). */}
         <Input
           ref={inputRef}
           type="file"
-          accept="image/*,application/pdf,text/plain"
+          accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain"
           className="hidden"
           onChange={e => {
             const file = e.target.files?.[0];

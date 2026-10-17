@@ -38,12 +38,17 @@ test.describe("Header session", () => {
     expect(landing.ok()).toBe(true);
     expect(await dashboard.text()).toContain("Sign out");
     expect(await landing.text()).toContain("Sign out");
+    // The signed-in nav now carries the one UI path between the pages (task: no page.goto).
+    expect(await landing.text()).toContain('href="/dashboard"');
   });
 
   test("leaves it out for a visitor with no session", async ({ page }) => {
     const response = await page.request.get("/");
     expect(response.ok()).toBe(true);
-    expect(await response.text()).not.toContain("Sign out");
+    const text = await response.text();
+    expect(text).not.toContain("Sign out");
+    // A visitor gets the sign-in path in the server markup instead of only the theme toggle.
+    expect(text).toContain('href="/login"');
   });
 
   test("hydrates the signed-in nav without a mismatch", async ({ page }) => {

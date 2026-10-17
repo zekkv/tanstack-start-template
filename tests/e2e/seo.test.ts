@@ -35,12 +35,8 @@ test.describe("SEO and Metadata", () => {
     const twitterTitle = page.locator('meta[name="twitter:title"]');
     await expect(twitterTitle).toHaveAttribute("content", /TanStack Start Template/i);
 
-    // Favicon & Icons & Theme color
-    const themeColor = page.locator('meta[name="theme-color"]');
-    await expect(themeColor).toHaveAttribute("content", "#09090b");
-
-    const faviconIco = page.locator('link[rel="icon"][href="/favicon.ico"]');
-    await expect(faviconIco).toBeAttached();
+    // Favicon & Icons & Theme color (light matches the default theme)
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#fcfcfc");
 
     const faviconSvg = page.locator('link[rel="icon"][href="/favicon.svg"]');
     await expect(faviconSvg).toBeAttached();
@@ -54,7 +50,6 @@ test.describe("SEO and Metadata", () => {
     // JSON-LD Structured Data
     const jsonLdScript = page.locator('script[type="application/ld+json"]');
     await expect(jsonLdScript).toBeAttached();
-
     // A `<script>` has no rendered text, so web-first text assertions see an empty string;
     // read `textContent` and assert on the value instead.
     const jsonLdContent = await jsonLdScript.textContent();

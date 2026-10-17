@@ -15,6 +15,13 @@ vi.mock("@tanstack/react-router", () => ({
   useRouter: () => ({ invalidate: mockInvalidate }),
 }));
 
+vi.mock("sonner", () => ({
+  toast: {
+    error: vi.fn<(message: string) => void>(),
+    success: vi.fn<(message: string) => void>(),
+  },
+}));
+
 vi.mock("#/lib/auth-client", () => ({
   authClient: {
     signIn: {
@@ -27,6 +34,9 @@ vi.mock("#/lib/auth-client", () => ({
         .fn<() => Promise<{ data: null; error: null }>>()
         .mockResolvedValue({ data: null, error: null }),
     },
+    sendVerificationEmail: vi
+      .fn<() => Promise<{ data: null; error: null }>>()
+      .mockResolvedValue({ data: null, error: null }),
     emailOtp: {
       sendVerificationOtp: vi
         .fn<() => Promise<{ data: null; error: null }>>()
@@ -35,10 +45,10 @@ vi.mock("#/lib/auth-client", () => ({
   },
 }));
 
-function renderForm() {
+function renderForm({ googleEnabled = true }: { googleEnabled?: boolean } = {}) {
   return render(
     <QueryClientProvider client={new QueryClient()}>
-      <SignupForm />
+      <SignupForm googleEnabled={googleEnabled} />
     </QueryClientProvider>
   );
 }
@@ -53,6 +63,12 @@ describe("SignupForm component", () => {
     expect(screen.getByRole("button", { name: /create account/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /sign up with an email code/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /continue with google/i })).toBeTruthy();
+  });
+
+  it("hides the Google option when Google is not configured", () => {
+    renderForm({ googleEnabled: false });
+
+    expect(screen.queryByRole("button", { name: /continue with google/i })).toBeNull();
   });
 
   it("shows validation error when submitting an invalid email", async () => {
@@ -124,21 +140,65 @@ describe("SignupForm component", () => {
 
   it("tells the new user to verify their email instead of navigating away", async () => {
     const user = userEvent.setup();
+    const { authClient } = await import("#/lib/auth-client");
     renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "newuser@example.com");
     await user.type(screen.getByLabelText(/password/i), "long-enough-pass1!");
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText("Check your email")).toBeTruthy();
-      expect(
-        screen.getByText(/signing in with an email code before you verify clears it/i)
-      ).toBeTruthy();
-    });
+    expect(await screen.findByText(/follow the link to activate your account/i)).toBeTruthy();
     expect(mockNavigate).not.toHaveBeenCalled();
     // The header reads the session from route context, so the in-place sign-up must re-resolve it.
     expect(mockInvalidate).toHaveBeenCalled();
+    expect(authClient.sendVerificationEmail).not.toHaveBeenCalled();
+  });
+
+  it("resends the verification email from the check-your-email panel", async () => {
+    const { authClient } = await import("#/lib/auth-client");
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.type(screen.getByLabelText(/email/i), "newuser@example.com");
+    await user.type(screen.getByLabelText(/password/i), "long-enough-pass1!");
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+
+    await user.click(await screen.findByRole("button", { name: /resend verification email/i }));
+
+    await waitFor(() => {
+      expect(authClient.sendVerificationEmail).toHaveBeenCalledWith({
+        email: "newuser@example.com",
+        callbackURL: "/login",
+      });
+    });
+    expect(await screen.findByText(/sent again/i)).toBeTruthy();
+  });
+
+  it("reports a failed verification-email resend as a toast", async () => {
+    const { authClient } = await import("#/lib/auth-client");
+    vi.mocked(authClient.sendVerificationEmail).mockResolvedValueOnce({
+      data: null,
+      error: {
+        message: "Email service unavailable",
+        status: 503,
+        statusText: "Unavailable",
+      } as never,
+    });
+
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.type(screen.getByLabelText(/email/i), "newuser@example.com");
+    await user.type(screen.getByLabelText(/password/i), "long-enough-pass1!");
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+
+    await user.click(await screen.findByRole("button", { name: /resend verification email/i }));
+
+    await waitFor(() => {
+      expect(authClient.sendVerificationEmail).toHaveBeenCalled();
+    });
+    const { toast } = await import("sonner");
+    expect(toast.error).toHaveBeenCalledWith("Email service unavailable");
   });
 
   it("displays server error message when sign-up fails", async () => {

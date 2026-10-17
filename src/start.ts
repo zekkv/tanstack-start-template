@@ -3,29 +3,29 @@ import {
   sentryGlobalRequestMiddleware,
 } from "@sentry/tanstackstart-react";
 import { createMiddleware, createStart } from "@tanstack/react-start";
-import { logger } from "#/lib/logger";
+import { withSecurityHeaders } from "#/lib/security-headers";
 
-const loggerMiddleware = createMiddleware({ type: "request" }).server(async ({ request, next }) => {
-  logger.info("Incoming request", {
-    method: request.method,
-    url: new URL(request.url).pathname,
-  });
-  return next();
+// Applies the security headers to every response flowing through the Start handler — SSR pages
+// and server functions alike. `next()` resolves to the request context whose `response` is the
+// final Response; returning it with the header-mounted copy makes Start use the new response.
+const securityHeadersMiddleware = createMiddleware({ type: "request" }).server(async ({ next }) => {
+  const result = await next();
+  return { ...result, response: withSecurityHeaders(result.response) };
 });
 
 /**
- * TanStack Start instance with Sentry global middlewares and custom logging.
+ * TanStack Start instance with Sentry global middlewares and security headers.
  *
  * - sentryGlobalRequestMiddleware: attaches request context to Sentry events.
  * - sentryGlobalFunctionMiddleware: captures errors in server functions.
- * - loggerMiddleware: logs all incoming requests for audit/metrics.
+ * - securityHeadersMiddleware: sets CSP/nosniff/referrer/permissions headers on every response.
  *
  * These must be first in the arrays to ensure all errors and requests are
  * captured before any other middleware has a chance to swallow them.
  */
 export const startInstance = createStart(() => {
   return {
-    requestMiddleware: [sentryGlobalRequestMiddleware, loggerMiddleware],
+    requestMiddleware: [sentryGlobalRequestMiddleware, securityHeadersMiddleware],
     functionMiddleware: [sentryGlobalFunctionMiddleware],
   };
 });

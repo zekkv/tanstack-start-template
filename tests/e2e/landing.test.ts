@@ -5,6 +5,9 @@ test.describe("Landing Page", () => {
     await page.goto("/");
     await expect(page).toHaveURL("http://localhost:3000/");
     await expect(page.getByText("TanStack Start template")).toBeVisible();
-    await expect(page.getByRole("link", { name: /get started/i })).toBeVisible();
+    // The primary CTA is the in-app sign-up path, not an external docs link.
+    const cta = page.getByRole("link", { name: /get started/i });
+    await expect(cta).toBeVisible();
+    await expect(cta).toHaveAttribute("href", "/signup");
   });
 });

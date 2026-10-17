@@ -12,10 +12,10 @@ colors:
   secondary-foreground: "oklch(0.16 0 0)"
   muted: "oklch(0.965 0 0)"
   muted-foreground: "oklch(0.52 0 0)"
-  border: "oklch(0.92 0 0)"
-  input: "oklch(0.92 0 0)"
+  border: "oklch(0.65 0 0)"
+  input: "oklch(0.65 0 0)"
   ring: "oklch(0.556 0 0)"
-  destructive: "oklch(0.577 0.245 27.325)"
+  destructive: "oklch(0.539 0.204 27.325)"
   destructive-foreground: "oklch(0.99 0.01 240)"
 typography:
   display:
@@ -128,10 +128,10 @@ Light-first. Dark inverts background/foreground and softens muted/border to tran
 - **Foreground (oklch(0.16 0 0)):** near-black ink for headings, primary buttons, and body emphasis.
 - **Card (oklch(1 0 0)):** slightly lifted mono-code and form surfaces.
 - **Muted (oklch(0.965 0 0)) / Muted-foreground (oklch(0.52 0 0)):** secondary text, captions, tree annotations, and the “TANSTACK START TEMPLATE” eyebrow.
-- **Border (oklch(0.92 0 0)) / Input (oklch(0.92 0 0)):** hairline dividers, table rules, card strokes.
+- **Border (oklch(0.65 0 0)) / Input (oklch(0.65 0 0)):** hairline dividers, table rules, card strokes. A mid-gray, not a near-white — the earlier 0.92 stops could not reach 3:1 against the paper background.
 - **Primary (oklch(0.16 0 0)) / Primary-foreground (oklch(0.99 0 0)):** solid ink buttons; hover is a subtle opacity shift, not a hue shift.
-- **Ring (oklch(0.556 0 0)):** neutral focus ring.
-- **Destructive (oklch(0.577 0.245 27.325)):** error states and destructive actions (delete note, delete passkey, delete account).
+- **Ring (oklch(0.556 0 0)):** neutral focus ring, applied at full opacity (`ring-ring` — vendored `ring-ring/50` classes were changed to full `ring-ring`, because a 50%-alpha ring has a ~1.9:1 contrast ceiling and can never reach 3:1 on a light background).
+- **Destructive (oklch(0.539 0.204 27.325)):** error states and destructive actions (delete note, delete passkey, delete account).
 
 Dark: background oklch(0.155 0 0), foreground oklch(0.96 0 0), card oklch(0.185 0 0), muted oklch(0.235 0 0), muted-foreground oklch(0.68 0 0), border white/12%, input white/16%, ring oklch(0.68 0 0), destructive oklch(0.704 0.191 22.216).
 
@@ -164,10 +164,10 @@ Minimal radius. `--radius: 0.5rem (8px)` — `rounded-md` for inputs, `rounded-l
 
 ## Components
 
-- **Primary button:** `bg-primary text-primary-foreground h-10 px-5 rounded-md text-sm font-medium`, hover opacity-80, focus ring `ring-ring/50`. Used for “Get started” and “Continue with email”.
+- **Primary button:** `bg-primary text-primary-foreground h-10 px-5 rounded-md text-sm font-medium`, hover opacity-80, focus ring `ring-ring`. Used for “Get started” and “Continue with email”.
 - **Secondary / outline button:** `variant="outline"` — `border-border bg-background` with `hover:bg-muted`; used for “Sign in with passkey”, “Continue with Google”, “Choose file”.
 - **Links (text):** `text-foreground underline decoration-border underline-offset-4 hover:decoration-foreground`. The hero secondary link and “Account settings” use this; header/footer nav links are `text-muted-foreground hover:text-foreground` (with underline on hover for the doc links).
-- **Input:** `h-9 border-input rounded-md bg-background px-3 text-sm`, focus `ring-ring/50`.
+- **Input:** `h-9 border-input rounded-md bg-background px-3 text-sm`, focus `ring-ring`.
 - **Table:** `border-b border-border` header, `border-b border-border/60` rows, destructive icon button for delete. Table cells use the primitive's own typography; table-level treatments belong in `src/components/ui/table.tsx`.
 - **Quickstart block:** `border border-border bg-card rounded-md p-4`, mono 12–14px, `$` muted prefix, absolute `bg-card` copy button (Copy/Check icons).
 - **Theme toggle:** two 32px square icon buttons, active `bg-primary text-primary-foreground rounded-md`, inactive `text-muted-foreground hover:text-foreground`.
@@ -180,7 +180,7 @@ Minimal radius. `--radius: 0.5rem (8px)` — `rounded-md` for inputs, `rounded-l
 - Do keep `max-w-4xl` as the outer measure and `max-w-xl` for prose; don’t introduce dense multi-column broadsheet grids.
 - Do keep motion to the single hero `fade-in`; don’t re-add staggered `slide-in` or `glass` blur choreography.
 - Do maintain the mono wordmark (`tanstack-start`); don’t reintroduce remote TanStack SVG logos.
-- Do respect `prefers-reduced-motion` (global 0.01ms override) and keep keyboard focus visible via neutral rings.
+- Do respect `prefers-reduced-motion` (global 0.01ms override) and keep keyboard focus visible via neutral rings at full opacity.
 
 ## Lint rules
 

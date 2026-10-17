@@ -30,6 +30,7 @@ const config = defineConfig(({ mode }) => {
       ...(isDev ? [devtools()] : []),
       nitro({
         preset: "bun",
+        compressPublicAssets: { gzip: true, brotli: true },
         rollupConfig: { external: ["bun", /^bun:/] },
         traceDeps: [/^@sentry\//, /^@logtape\//],
         routeRules: {

@@ -7,8 +7,21 @@ import { toast } from "sonner";
 
 import { authClient } from "#/lib/auth-client";
 import { accountOptions } from "#/features/auth/accounts";
+import type { SessionUser } from "#/features/auth/session";
 import { Button } from "#/components/ui/button";
+import { Input } from "#/components/ui/input";
 import { Skeleton } from "#/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "#/components/ui/alert-dialog";
 import { Page } from "#/components/custom/page";
 
 const routeApi = getRouteApi("/_authenticated/settings");
@@ -23,26 +36,50 @@ function getProviderLabel(providerId: string) {
   return PROVIDER_LABELS[providerId] ?? providerId.charAt(0).toUpperCase() + providerId.slice(1);
 }
 
-export function SettingsPage() {
+/** The router-facing skin: the only part that touches the route tree. */
+export function SettingsRoutePage() {
   const { user } = routeApi.useRouteContext();
+  return <SettingsPage user={user} />;
+}
+
+interface SettingsPageProps {
+  user: SessionUser;
+}
+
+/**
+ * Presentational account page — everything it renders comes from props, the query cache, and
+ * the auth client, so it stays independent of the route that mounts it.
+ */
+export function SettingsPage({ user }: SettingsPageProps) {
   const navigate = useNavigate();
 
-  async function handleDeleteAccount() {
-    const { error } = await authClient.deleteUser({});
-    if (error) {
-      toast.error(error.message ?? "Failed to delete account");
-      return;
-    }
-    await navigate({ to: "/" });
-  }
+  const [password, setPassword] = useState("");
+  const deleteAccount = useMutation({
+    mutationFn: async (value: string) => {
+      // The server (better-auth `deleteUser`) verifies this password before deleting; without
+      // it the endpoint falls back to fresh-session checks instead.
+      const { error } = await authClient.deleteUser({ password: value });
+      if (error) throw new Error(error.message ?? "Failed to delete account");
+    },
+    onSuccess: async () => {
+      await navigate({ to: "/" });
+    },
+    onError: error => toast.error(error.message),
+  });
 
   const { data: passkeys, isPending: passkeysPending } = authClient.useListPasskeys();
   const { data: accounts, status } = useQuery(accountOptions(user.id));
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const deletePasskey = useMutation({
     mutationFn: async (passkeyId: string) => {
       const { error } = await authClient.passkey.deletePasskey({ id: passkeyId });
       if (error) throw new Error(error.message ?? "Failed to delete passkey");
+    },
+    onError: error => toast.error(error.message),
+  });
+  const addPasskey = useMutation({
+    mutationFn: async () => {
+      const { error } = await authClient.passkey.addPasskey();
+      if (error) throw new Error(error.message ?? "Failed to add passkey");
     },
     onError: error => toast.error(error.message),
   });
@@ -92,22 +129,7 @@ export function SettingsPage() {
           ) : (
             <ul className="space-y-2">
               {passkeys.map((pk: Passkey) => (
-                <li key={pk.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <KeyRound className="size-4 text-muted-foreground" />
-                    <span className="text-sm">{pk.name ?? "Passkey"}</span>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon-sm"
-                    disabled={deletePasskey.isPending && deletePasskey.variables === pk.id}
-                    aria-label={`Delete passkey: ${pk.name ?? "Passkey"}`}
-                    onClick={() => deletePasskey.mutate(pk.id)}
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
-                </li>
+                <PasskeyRow key={pk.id} passkey={pk} deletePasskey={deletePasskey} />
               ))}
             </ul>
           )}
@@ -117,14 +139,10 @@ export function SettingsPage() {
               variant="outline"
               size="sm"
               className="mt-3"
-              onClick={() =>
-                void (async () => {
-                  const { error } = await authClient.passkey.addPasskey();
-                  if (error) toast.error(error.message ?? "Failed to add passkey");
-                })()
-              }
+              disabled={addPasskey.isPending}
+              onClick={() => addPasskey.mutate()}
             >
-              <KeyRound className="size-4" />
+              {addPasskey.isPending ? "Starting…" : <KeyRound className="size-4" />}
               Add passkey
             </Button>
           </div>
@@ -132,34 +150,103 @@ export function SettingsPage() {
 
         {/* Danger zone */}
         <SettingsSection title="Danger zone">
-          {confirmDelete ? (
-            <div className="space-y-3">
-              <p className="text-sm text-destructive">
-                This permanently deletes your account and all data. This cannot be undone.
-              </p>
-              <div className="flex gap-2">
-                <Button variant="destructive" size="sm" onClick={() => void handleDeleteAccount()}>
-                  Yes, delete my account
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setConfirmDelete(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={() => setConfirmDelete(true)}
-            >
+          <AlertDialog
+            onOpenChange={open => {
+              // A cancelled or dismissed confirmation must not keep the typed password around.
+              if (!open) setPassword("");
+            }}
+          >
+            <AlertDialogTrigger render={<Button type="button" variant="destructive" size="sm" />}>
               <Trash2 className="size-4" />
               Delete account
-            </Button>
-          )}
+            </AlertDialogTrigger>
+            <AlertDialogContent size="sm">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete account</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This permanently deletes your account and all data. Enter your password to
+                  confirm. This cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <Input
+                type="password"
+                aria-label="Account password"
+                placeholder="Password"
+                autoComplete="current-password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+              />
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  type="button"
+                  variant="destructive"
+                  disabled={password.length === 0 || deleteAccount.isPending}
+                  onClick={() => deleteAccount.mutate(password)}
+                >
+                  {deleteAccount.isPending ? "Deleting…" : "Yes, delete my account"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </SettingsSection>
       </div>
     </Page>
+  );
+}
+
+interface PasskeyRowProps {
+  passkey: Passkey;
+  deletePasskey: ReturnType<typeof useMutation<void, Error, string>>;
+}
+
+/** One passkey row; the destructive confirm lives in a dialog per row. */
+function PasskeyRow({ passkey, deletePasskey }: PasskeyRowProps) {
+  const [open, setOpen] = useState(false);
+  const label = passkey.name ?? "Passkey";
+  const deleting = deletePasskey.isPending && deletePasskey.variables === passkey.id;
+
+  return (
+    <li className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <KeyRound className="size-4 text-muted-foreground" />
+        <span className="text-sm">{label}</span>
+      </div>
+      <AlertDialog open={open} onOpenChange={setOpen}>
+        <AlertDialogTrigger
+          render={
+            <Button
+              type="button"
+              variant="destructive"
+              size="icon-sm"
+              aria-label={`Delete passkey: ${label}`}
+            />
+          }
+        >
+          <Trash2 className="size-4" />
+        </AlertDialogTrigger>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete passkey</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete &ldquo;{label}&rdquo;? Devices will no longer be able to sign in with it. This
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              type="button"
+              variant="destructive"
+              disabled={deleting}
+              onClick={() => deletePasskey.mutate(passkey.id, { onSettled: () => setOpen(false) })}
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </li>
   );
 }
 

@@ -25,6 +25,11 @@ vi.mock("#/lib/auth-client", () => ({
         .fn<() => Promise<{ data: null; error: null }>>()
         .mockResolvedValue({ data: null, error: null }),
     },
+    emailOtp: {
+      sendVerificationOtp: vi
+        .fn<() => Promise<{ data: null; error: null }>>()
+        .mockResolvedValue({ data: null, error: null }),
+    },
   },
 }));
 
@@ -44,6 +49,45 @@ describe("VerifyOtpForm component", () => {
     expect(screen.getByText("user@example.com")).toBeTruthy();
     expect(screen.getByLabelText(/verification code/i)).toBeTruthy();
     expect(screen.getByRole("button", { name: /verify code/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /resend code/i })).toBeTruthy();
+  });
+
+  it("resends a code with the type the original send used and confirms it", async () => {
+    const { authClient } = await import("#/lib/auth-client");
+    const user = userEvent.setup();
+    renderForm("sign-in");
+
+    await user.click(screen.getByRole("button", { name: /resend code/i }));
+
+    await waitFor(() => {
+      expect(authClient.emailOtp.sendVerificationOtp).toHaveBeenCalledWith({
+        email: "user@example.com",
+        type: "sign-in",
+      });
+    });
+    expect(await screen.findByText(/a new code was sent/i)).toBeTruthy();
+  });
+
+  it("reports a failed resend and stays on the page", async () => {
+    const { authClient } = await import("#/lib/auth-client");
+    vi.mocked(authClient.emailOtp.sendVerificationOtp).mockResolvedValueOnce({
+      data: null,
+      error: {
+        message: "Too many requests",
+        status: 429,
+        statusText: "Too Many Requests",
+      } as never,
+    });
+
+    const user = userEvent.setup();
+    renderForm("sign-up");
+
+    await user.click(screen.getByRole("button", { name: /resend code/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Too many requests")).toBeTruthy();
+    });
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it("shows validation error when entering an invalid length OTP", async () => {

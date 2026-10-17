@@ -37,12 +37,13 @@ export default defineConfig({
       ],
       // Baselines measured from the unit project, which is the coverage workhorse; the
       // integration project runs with coverage off (see `test:integration`) because a
-      // boundary suite exercises little of the source tree by design.
+      // boundary suite exercises little of the source tree by design. Set ~2pp under the
+      // measured baseline so a new uncovered file fails loudly without flagging noise.
       thresholds: {
-        lines: 50,
+        lines: 52,
         functions: 45,
-        branches: 45,
-        statements: 50,
+        branches: 44,
+        statements: 52,
       },
     },
     // A project that collected nothing is a wiring failure, not a pass.

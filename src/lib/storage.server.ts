@@ -7,11 +7,12 @@ export const CONTENT_TYPE_EXTENSIONS: Record<string, string> = {
   "image/png": "png",
   "image/gif": "gif",
   "image/webp": "webp",
-  "image/svg+xml": "svg",
+  // image/svg+xml is deliberately absent: inline rendering of an uploaded SVG is stored XSS.
   "application/pdf": "pdf",
   "text/plain": "txt",
 };
 
+// ponytail: 10 MB is only a client-declared check here; the bucket quota/lifecycle rule is the real enforcement.
 const MAX_BYTES = 10 * 1024 * 1024;
 
 export interface UploadRequest {

@@ -13,6 +13,8 @@ interface ErrorPageProps {
   reset?: () => void;
   className?: string;
   title?: string;
+  /** Show the raw message outside development; for authored, non-leaking copy like the 404. */
+  showDetail?: boolean;
 }
 
 export function ErrorPage({
@@ -20,6 +22,7 @@ export function ErrorPage({
   reset,
   className,
   title = "Something went wrong",
+  showDetail = import.meta.env.DEV,
 }: ErrorPageProps) {
   const message = error instanceof Error ? error.message : String(error);
 
@@ -35,9 +38,18 @@ export function ErrorPage({
           </h1>
         </div>
 
-        <pre className="max-h-48 overflow-auto rounded-md border border-border bg-card p-4 font-mono text-xs break-words whitespace-pre-wrap text-muted-foreground">
-          {message}
-        </pre>
+        {showDetail ? (
+          // Raw error text is for developers; in production even a legit-looking message can
+          // leak internals (paths, tokens, SQL), so everyone gets generic copy. Reporting to
+          // Sentry still happens for both (RootErrorPage).
+          <pre className="max-h-48 overflow-auto rounded-md border border-border bg-card p-4 font-mono text-xs break-words whitespace-pre-wrap text-muted-foreground">
+            {message}
+          </pre>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            An unexpected error occurred. The failure has been reported.
+          </p>
+        )}
 
         <div className="flex flex-col items-start gap-3">
           {reset && (
@@ -80,7 +92,11 @@ export function RootErrorPage(props: ErrorComponentProps) {
 export function RootNotFoundPage() {
   return (
     <RootDocument meta={<meta name="robots" content="noindex, nofollow" />}>
-      <ErrorPage error="The page you are looking for does not exist." title="404 - Not Found" />
+      <ErrorPage
+        error="The page you are looking for does not exist."
+        title="404 - Not Found"
+        showDetail
+      />
     </RootDocument>
   );
 }

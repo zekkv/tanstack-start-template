@@ -33,7 +33,7 @@ export function Header() {
           tanstack-start
         </Link>
 
-        <nav className="flex items-center gap-1">
+        <nav aria-label="Site" className="flex items-center gap-1">
           <Button
             variant="ghost"
             size="sm"
@@ -48,15 +48,24 @@ export function Header() {
           >
             GitHub
           </Button>
-          {user && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={signOut.isPending}
-              onClick={() => signOut.mutate()}
-            >
-              Sign out
+          {user ? (
+            <>
+              <Button variant="ghost" size="sm" render={<Link to="/dashboard" />}>
+                Dashboard
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={signOut.isPending}
+                onClick={() => signOut.mutate()}
+              >
+                Sign out
+              </Button>
+            </>
+          ) : (
+            <Button variant="ghost" size="sm" render={<Link to="/login" />}>
+              Sign in
             </Button>
           )}
           <ThemeToggle />

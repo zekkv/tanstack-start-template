@@ -1,12 +1,32 @@
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
+/** Substrings (lowercase) that mark a committed placeholder instead of a real secret. */
+const PLACEHOLDER_SECRET_FRAGMENTS = [
+  "replace-with",
+  "changeme",
+  "change-me",
+  "your-secret",
+  "placeholder",
+  "example",
+];
+
 export const env = createEnv({
   server: {
     SERVER_URL: z.url().optional(),
     DATABASE_URL: z.url(),
     BETTER_AUTH_URL: z.url().default("http://localhost:3000"),
-    BETTER_AUTH_SECRET: z.string().min(32),
+    BETTER_AUTH_SECRET: z
+      .string()
+      .min(32)
+      .refine(
+        secret =>
+          !PLACEHOLDER_SECRET_FRAGMENTS.some(fragment => secret.toLowerCase().includes(fragment)),
+        {
+          message:
+            "BETTER_AUTH_SECRET looks like a placeholder. Generate a real secret (e.g. `openssl rand -base64 32`); a fixed example secret lets anyone forge auth tokens.",
+        }
+      ),
     GOOGLE_CLIENT_ID: z.string().min(1).optional(),
     GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
     SENTRY_AUTH_TOKEN: z.string().optional(),
@@ -17,11 +37,12 @@ export const env = createEnv({
     MINIO_BUCKET: z.string().min(1).optional(),
     MINIO_ACCESS_KEY: z.string().min(1).optional(),
     MINIO_SECRET_KEY: z.string().min(1).optional(),
-    REDIS_URL: z.string().optional(),
+    // Comma-separated IPs/CIDRs of reverse proxies; consumed by auth.server.ts (Better Auth
+    // `advanced.ipAddress.trustedProxies`).
+    TRUSTED_PROXIES: z.string().optional(),
   },
   clientPrefix: "VITE_",
   client: {
-    VITE_APP_TITLE: z.string().min(1).optional(),
     VITE_SENTRY_DSN: z.url().optional(),
     VITE_SENTRY_ORG: z.string().optional(),
     VITE_SENTRY_PROJECT: z.string().optional(),
@@ -41,9 +62,8 @@ export const env = createEnv({
     MINIO_BUCKET: process.env.MINIO_BUCKET,
     MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY,
     MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY,
-    REDIS_URL: process.env.REDIS_URL,
+    TRUSTED_PROXIES: process.env.TRUSTED_PROXIES,
     // import.meta.env is Vite-only; fallback to process.env in Node.js (e.g. drizzle-kit, instrument.server.mjs)
-    VITE_APP_TITLE: process.env.VITE_APP_TITLE ?? import.meta.env?.VITE_APP_TITLE,
     VITE_SENTRY_DSN: process.env.VITE_SENTRY_DSN ?? import.meta.env?.VITE_SENTRY_DSN,
     VITE_SENTRY_ORG: process.env.VITE_SENTRY_ORG ?? import.meta.env?.VITE_SENTRY_ORG,
     VITE_SENTRY_PROJECT: process.env.VITE_SENTRY_PROJECT ?? import.meta.env?.VITE_SENTRY_PROJECT,

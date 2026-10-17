@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ValidationError } from "#/features/auth/session";
+import { ValidationError } from "#/lib/http-errors";
 
 export const CreateNoteInput = z.object({
   title: z
@@ -11,6 +11,10 @@ export const CreateNoteInput = z.object({
 });
 
 export const DeleteNoteInput = z.object({ id: z.number() });
+
+/** The payload shape the handlers receive — a TanStack validator has already parsed it. */
+export type CreateNotePayload = z.infer<typeof CreateNoteInput>;
+export type DeleteNotePayload = z.infer<typeof DeleteNoteInput>;
 
 // Zod's own message is a JSON dump of every issue; routes toast `err.message` straight at
 // the user, so both entry points go through this and surface one sentence.

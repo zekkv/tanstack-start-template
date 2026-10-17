@@ -7,6 +7,7 @@ import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
 import { PasswordSchema } from "#/features/auth/schema/password";
 import { FormError } from "#/components/custom/form-error";
+import { toast } from "sonner";
 import { useState } from "react";
 
 /**
@@ -132,6 +133,8 @@ function SetNewPassword({ token }: { token: string }) {
         });
         return;
       }
+      // The route change would otherwise be the only hint; name what happened before it.
+      toast.success("Password updated — sign in.");
       // resetPassword does not create a session, so send them through sign-in.
       await navigate({ to: "/login" });
     },
