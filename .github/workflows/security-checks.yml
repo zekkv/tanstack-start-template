@@ -53,7 +53,10 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-bun
       - name: Audit dependencies
-        run: bun audit --audit-level=moderate
+        # GHSA-vfj7-8cjw-p6xm (braces, stack-exhaustion DoS) has no patched release. Its only path
+        # is shadcn > @shadcn/registry > fast-glob > micromatch > braces, a dev-only CLI that no
+        # script runs and that never reaches the bundle. Drop the ignore when braces ships a fix.
+        run: bun audit --audit-level=moderate --ignore=GHSA-vfj7-8cjw-p6xm
 
   codeql:
     name: CodeQL
