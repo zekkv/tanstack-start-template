@@ -26,7 +26,7 @@ A production-ready full-stack web application template built with TanStack Start
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) v1.4.2 or later
+- [Bun](https://bun.sh/) v1.4.4 or later
 - [Docker](https://www.docker.com/) for local services (Postgres, MinIO, Redis, Mailpit) and for the Testcontainers the integration and E2E suites start
 
 ### Setup

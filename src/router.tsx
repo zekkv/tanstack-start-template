@@ -44,8 +44,12 @@ export function getRouter() {
         tracesSampleRate: 0.1,
         replaysSessionSampleRate: REPLAY_SESSION_SAMPLE_RATE,
         replaysOnErrorSampleRate: REPLAY_ERROR_SAMPLE_RATE,
-        enableLogs: true,
-        sendDefaultPii: false,
+        dataCollection: {
+          userInfo: false,
+          cookies: false,
+          httpBodies: [],
+          databaseQueryData: false,
+        },
       });
       globalState.__appSentryInitialized__ = true;
 

@@ -4,7 +4,7 @@ This guide covers the local development environment, scripts catalog, database m
 
 ## Prerequisites
 
-- **[Bun](https://bun.sh/)** v1.4.2 or later
+- **[Bun](https://bun.sh/)** v1.4.4 or later
 - **[Docker](https://www.docker.com/)** and Docker Compose: local PostgreSQL, MinIO, Redis, and Mailpit, plus the Testcontainers the integration and E2E suites start
 
 ## Local Setup
@@ -88,32 +88,32 @@ This guide covers the local development environment, scripts catalog, database m
 
 All available scripts defined in `package.json`:
 
-| Command                    | Description                                                            |
-| -------------------------- | ---------------------------------------------------------------------- |
-| `bun run dev`              | Start development server with SSR instrumentation on port 3000         |
-| `bun run build`            | Build the application for production using Nitro and Vite              |
-| `bun run build:docker`     | Build production Docker container image                                |
-| `bun run preview`          | Preview production build locally                                       |
-| `bun run start`            | Run production build server with Nitro and server instrumentation      |
-| `bun run clean`            | Remove build artifacts, caches, coverage, and generated route trees    |
-| `bun run type:check`       | Run TypeScript compiler check without emitting output (`tsc --noEmit`) |
-| `bun run lint:check`       | Check code with Oxlint (denying warnings)                              |
-| `bun run lint:fix`         | Automatically fix lint issues with Oxlint                              |
-| `bun run format:check`     | Check code and doc formatting with Oxfmt                               |
-| `bun run format:fix`       | Format files with Oxfmt                                                |
-| `bun run auth:generate`    | Generate Better Auth schema components                                 |
-| `bun run db:generate`      | Generate Drizzle SQL migration files from schema definitions           |
-| `bun run db:migrate`       | Execute pending Drizzle migrations against `DATABASE_URL`              |
-| `bun run db:push`          | Push schema directly to database (rapid prototyping only)              |
-| `bun run db:pull`          | Introspect database schema into Drizzle definitions                    |
-| `bun run db:seed`          | Run database seeding script (`scripts/seed.ts`)                        |
-| `bun run db:studio`        | Launch Drizzle Studio web interface                                    |
-| `bun run test`             | Run all Vitest test suites across projects                             |
-| `bun run test:unit`        | Run unit tests (`tests/unit/`, `jsdom` environment)                    |
-| `bun run test:integration` | Run integration tests (`tests/integration/`, `node` environment)       |
-| `bun run test:e2e`         | Run Playwright end-to-end tests                                        |
-| `bun run codegen`          | Launch Playwright code generator for browser test recording            |
-| `bun run prepare`          | Install Lefthook git pre-commit hooks                                  |
+| Command                    | Description                                                         |
+| -------------------------- | ------------------------------------------------------------------- |
+| `bun run dev`              | Start development server with SSR instrumentation on port 3000      |
+| `bun run build`            | Build the application for production using Nitro and Vite           |
+| `bun run build:docker`     | Build production Docker container image                             |
+| `bun run preview`          | Preview production build locally                                    |
+| `bun run start`            | Run production build server with Nitro and server instrumentation   |
+| `bun run clean`            | Remove build artifacts, caches, coverage, and generated route trees |
+| `bun run type:check`       | Type check with Bun's built-in checker (`bun check`)                |
+| `bun run lint:check`       | Check code with Oxlint (denying warnings)                           |
+| `bun run lint:fix`         | Automatically fix lint issues with Oxlint                           |
+| `bun run format:check`     | Check code and doc formatting with `bun fmt`                        |
+| `bun run format:fix`       | Format files with `bun fmt`                                         |
+| `bun run auth:generate`    | Generate Better Auth schema components                              |
+| `bun run db:generate`      | Generate Drizzle SQL migration files from schema definitions        |
+| `bun run db:migrate`       | Execute pending Drizzle migrations against `DATABASE_URL`           |
+| `bun run db:push`          | Push schema directly to database (rapid prototyping only)           |
+| `bun run db:pull`          | Introspect database schema into Drizzle definitions                 |
+| `bun run db:seed`          | Run database seeding script (`scripts/seed.ts`)                     |
+| `bun run db:studio`        | Launch Drizzle Studio web interface                                 |
+| `bun run test`             | Run all Vitest test suites across projects                          |
+| `bun run test:unit`        | Run unit tests (`tests/unit/`, `jsdom` environment)                 |
+| `bun run test:integration` | Run integration tests (`tests/integration/`, `node` environment)    |
+| `bun run test:e2e`         | Run Playwright end-to-end tests                                     |
+| `bun run codegen`          | Launch Playwright code generator for browser test recording         |
+| `bun run prepare`          | Install Lefthook git pre-commit hooks                               |
 
 ---
 
@@ -227,7 +227,7 @@ bun run playwright test tests/e2e/landing.test.ts
 
 ### Pre-commit Hooks
 
-[Lefthook](https://github.com/evilmartians/lefthook) runs automatically on `git commit`. It executes `oxlint --fix` and `oxfmt --write` against staged files:
+[Lefthook](https://github.com/evilmartians/lefthook) runs automatically on `git commit`. It executes `oxlint --fix` and `bun fmt --staged` against staged files:
 
 ```bash
 bun run prepare # reinstalls hooks if needed
