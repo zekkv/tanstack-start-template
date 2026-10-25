@@ -40,10 +40,10 @@ vi.mock("#/lib/storage.server", async importOriginal => {
 
 vi.mock("#/env", () => ({
   env: {
-    MINIO_ENDPOINT: "http://localhost:9000",
-    MINIO_ACCESS_KEY: "minioadmin",
-    MINIO_SECRET_KEY: "minioadmin",
-    MINIO_BUCKET: "test-bucket",
+    S3_ENDPOINT: "http://localhost:8333",
+    S3_ACCESS_KEY: "admin",
+    S3_SECRET_KEY: "password",
+    S3_BUCKET: "test-bucket",
   },
 }));
 
@@ -95,17 +95,17 @@ describe("createUploadUrl server function", () => {
       )
     ).toEqual({
       status: 503,
-      message: "Storage is not configured. Set MINIO_ENDPOINT to enable uploads.",
+      message: "Storage is not configured. Set S3_ENDPOINT to enable uploads.",
     });
   });
 
   it("returns a presigned URL and key when storage accepts the request", async () => {
     signIn(user);
-    const presign = vi.fn<() => string>().mockReturnValue("http://minio.local/upload");
+    const presign = vi.fn<() => string>().mockReturnValue("http://storage.local/upload");
     vi.spyOn(storage, "getStorageClient").mockReturnValue({ presign } as never);
 
     const result = await handleCreateUploadUrl(validRequest, user);
-    expect(result.url).toBe("http://minio.local/upload");
+    expect(result.url).toBe("http://storage.local/upload");
     expect(result.key).toMatch(/^uploads\/usr_upload\/[0-9a-f-]+\.jpg$/);
     expect(presign).toHaveBeenCalledWith(result.key, {
       method: "PUT",

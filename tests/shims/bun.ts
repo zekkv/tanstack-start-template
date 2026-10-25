@@ -11,7 +11,7 @@ export class S3Client {
   readonly bucket: string;
 
   constructor(options: S3ClientOptions = {}) {
-    this.endpoint = options.endpoint ?? "http://localhost:9000";
+    this.endpoint = options.endpoint ?? "http://localhost:8333";
     this.bucket = options.bucket ?? "app";
   }
 

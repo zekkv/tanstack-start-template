@@ -35,7 +35,7 @@ const TREE: TreeEntry[][] = [
 
 const ALSO_INCLUDED = [
   { term: "Observability", detail: "Sentry and OpenTelemetry wired into server startup" },
-  { term: "Infrastructure", detail: "Dockerfile and compose file with Postgres and MinIO" },
+  { term: "Infrastructure", detail: "Dockerfile and compose file with Postgres and SeaweedFS" },
   { term: "Guardrails", detail: "Pre-commit hooks run format, lint, and typecheck" },
 ];
 

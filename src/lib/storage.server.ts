@@ -50,10 +50,10 @@ let cachedKey: string | undefined;
 let cachedStorageClient: S3Client | null | undefined;
 
 export function getStorageClient(
-  endpoint = process.env.MINIO_ENDPOINT,
-  accessKey = process.env.MINIO_ACCESS_KEY,
-  secretKey = process.env.MINIO_SECRET_KEY,
-  bucket = process.env.MINIO_BUCKET ?? "app"
+  endpoint = process.env.S3_ENDPOINT,
+  accessKey = process.env.S3_ACCESS_KEY,
+  secretKey = process.env.S3_SECRET_KEY,
+  bucket = process.env.S3_BUCKET ?? "app"
 ): S3Client | null {
   const key = `${endpoint}:${accessKey}:${secretKey}:${bucket}`;
   if (cachedStorageClient !== undefined && cachedKey === key) return cachedStorageClient;
