@@ -272,7 +272,7 @@ function FileUploadCard() {
     <section className="mt-12" aria-label="File upload">
       <h2 className="font-heading text-lg font-semibold tracking-tight">File upload</h2>
       <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-        Presigned PUT upload via MinIO. Images and PDFs up to 10 MB.
+        Presigned PUT upload via SeaweedFS. Images and PDFs up to 10 MB.
       </p>
 
       {upload.status === "success" ? (

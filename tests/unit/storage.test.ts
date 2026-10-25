@@ -93,15 +93,15 @@ describe("getStorageClient", () => {
   });
 
   test("caches one client per configuration and constructs it from the endpoint and bucket", () => {
-    vi.stubEnv("MINIO_ENDPOINT", "http://storage.test:9000");
-    vi.stubEnv("MINIO_ACCESS_KEY", "access");
-    vi.stubEnv("MINIO_SECRET_KEY", "secret");
-    vi.stubEnv("MINIO_BUCKET", "uploads");
+    vi.stubEnv("S3_ENDPOINT", "http://storage.test:8333");
+    vi.stubEnv("S3_ACCESS_KEY", "access");
+    vi.stubEnv("S3_SECRET_KEY", "secret");
+    vi.stubEnv("S3_BUCKET", "uploads");
 
     const client = getStorageClient();
 
     expect(client).toBeInstanceOf(S3Client);
-    expect(client).toMatchObject({ endpoint: "http://storage.test:9000", bucket: "uploads" });
+    expect(client).toMatchObject({ endpoint: "http://storage.test:8333", bucket: "uploads" });
     expect(getStorageClient()).toBe(client);
   });
 });

@@ -23,14 +23,14 @@ export async function handleCreateUploadUrl(
   }
 
   const client = getStorageClient(
-    env.MINIO_ENDPOINT,
-    env.MINIO_ACCESS_KEY,
-    env.MINIO_SECRET_KEY,
-    env.MINIO_BUCKET
+    env.S3_ENDPOINT,
+    env.S3_ACCESS_KEY,
+    env.S3_SECRET_KEY,
+    env.S3_BUCKET
   );
   if (!client) {
     throw new ServiceUnavailableError(
-      "Storage is not configured. Set MINIO_ENDPOINT to enable uploads."
+      "Storage is not configured. Set S3_ENDPOINT to enable uploads."
     );
   }
 

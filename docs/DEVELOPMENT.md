@@ -5,7 +5,7 @@ This guide covers the local development environment, scripts catalog, database m
 ## Prerequisites
 
 - **[Bun](https://bun.sh/)** v1.4.4 or later
-- **[Docker](https://www.docker.com/)** and Docker Compose: local PostgreSQL, MinIO, Redis, and Mailpit, plus the Testcontainers the integration and E2E suites start
+- **[Docker](https://www.docker.com/)** and Docker Compose: local PostgreSQL, SeaweedFS, Redis, and Mailpit, plus the Testcontainers the integration and E2E suites start
 
 ## Local Setup
 
@@ -31,8 +31,7 @@ This guide covers the local development environment, scripts catalog, database m
 
    This provisions:
    - **PostgreSQL 18** on `localhost:5432` (`app` database, user/password: `postgres`/`postgres`)
-   - **MinIO S3** on `localhost:9000` (API) and `localhost:9001` (web console: `admin` / `password`)
-   - **MinIO Init** bucket provisioner (`app` bucket created automatically)
+   - **SeaweedFS S3** on `localhost:8333` (credentials `admin` / `password` from `docker/seaweedfs-s3.json`; the `app` bucket is created on the first upload)
    - **Redis 7** on `localhost:6379`
 
 4. **Prepare the database**:
@@ -61,26 +60,26 @@ This guide covers the local development environment, scripts catalog, database m
 
 ## Environment Variables
 
-| Variable               | Required | Description                                                                                                                                              |
-| ---------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`         | ✅       | PostgreSQL connection string                                                                                                                             |
-| `BETTER_AUTH_SECRET`   | ✅       | 32+ character secret for session signing                                                                                                                 |
-| `BETTER_AUTH_URL`      | ✅       | App origin (default: `http://localhost:3000`)                                                                                                            |
-| `SERVER_URL`           | Optional | Canonical public application URL                                                                                                                         |
-| `GOOGLE_CLIENT_ID`     | Optional | Enables Google OAuth when set together with secret                                                                                                       |
-| `GOOGLE_CLIENT_SECRET` | Optional | Enables Google OAuth when set together with ID                                                                                                           |
-| `RESEND_API_KEY`       | Optional | Required to send email. App boots without it; email calls throw a clear error                                                                            |
-| `EMAIL_FROM`           | Optional | Sender address (default: `onboarding@resend.dev`)                                                                                                        |
-| `MINIO_ENDPOINT`       | Optional | S3-compatible endpoint — enables file uploads. Accepts MinIO, AWS S3, Cloudflare R2, or Supabase Storage (`https://<project>.supabase.co/storage/v1/s3`) |
-| `MINIO_BUCKET`         | Optional | Bucket name (default: `app`)                                                                                                                             |
-| `MINIO_ACCESS_KEY`     | Optional | Storage access key (default: `admin`)                                                                                                                    |
-| `MINIO_SECRET_KEY`     | Optional | Storage secret key (default: `password`)                                                                                                                 |
-| `REDIS_URL`            | Optional | Redis connection string (`redis://localhost:6379`) — enables Bun native Redis session cache for multi-instance deployments                               |
-| `SENTRY_AUTH_TOKEN`    | Optional | Auth token for Sentry source map uploads at build time                                                                                                   |
-| `VITE_APP_TITLE`       | Optional | Application title displayed in UI branding                                                                                                               |
-| `VITE_SENTRY_DSN`      | Optional | Enables Sentry error tracking                                                                                                                            |
-| `VITE_SENTRY_ORG`      | Optional | Sentry organization slug                                                                                                                                 |
-| `VITE_SENTRY_PROJECT`  | Optional | Sentry project slug                                                                                                                                      |
+| Variable               | Required | Description                                                                                                                                                  |
+| ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`         | ✅       | PostgreSQL connection string                                                                                                                                 |
+| `BETTER_AUTH_SECRET`   | ✅       | 32+ character secret for session signing                                                                                                                     |
+| `BETTER_AUTH_URL`      | ✅       | App origin (default: `http://localhost:3000`)                                                                                                                |
+| `SERVER_URL`           | Optional | Canonical public application URL                                                                                                                             |
+| `GOOGLE_CLIENT_ID`     | Optional | Enables Google OAuth when set together with secret                                                                                                           |
+| `GOOGLE_CLIENT_SECRET` | Optional | Enables Google OAuth when set together with ID                                                                                                               |
+| `RESEND_API_KEY`       | Optional | Required to send email. App boots without it; email calls throw a clear error                                                                                |
+| `EMAIL_FROM`           | Optional | Sender address (default: `onboarding@resend.dev`)                                                                                                            |
+| `S3_ENDPOINT`          | Optional | S3-compatible endpoint — enables file uploads. Accepts SeaweedFS, AWS S3, Cloudflare R2, or Supabase Storage (`https://<project>.supabase.co/storage/v1/s3`) |
+| `S3_BUCKET`            | Optional | Bucket name (default: `app`)                                                                                                                                 |
+| `S3_ACCESS_KEY`        | Optional | Storage access key (default: `admin`)                                                                                                                        |
+| `S3_SECRET_KEY`        | Optional | Storage secret key (default: `password`)                                                                                                                     |
+| `REDIS_URL`            | Optional | Redis connection string (`redis://localhost:6379`) — enables Bun native Redis session cache for multi-instance deployments                                   |
+| `SENTRY_AUTH_TOKEN`    | Optional | Auth token for Sentry source map uploads at build time                                                                                                       |
+| `VITE_APP_TITLE`       | Optional | Application title displayed in UI branding                                                                                                                   |
+| `VITE_SENTRY_DSN`      | Optional | Enables Sentry error tracking                                                                                                                                |
+| `VITE_SENTRY_ORG`      | Optional | Sentry organization slug                                                                                                                                     |
+| `VITE_SENTRY_PROJECT`  | Optional | Sentry project slug                                                                                                                                          |
 
 ---
 

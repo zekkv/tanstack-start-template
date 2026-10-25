@@ -141,7 +141,7 @@ Netlify also auto-detects this from the build environment. Same edge runtime lim
 
 ## Storage and email across environments
 
-**MinIO / S3**: Set `MINIO_ENDPOINT` to your S3-compatible endpoint. Powered by Bun's native `S3Client` (`Bun.s3`). For AWS S3 use `https://s3.amazonaws.com`, for Cloudflare R2 use your R2 endpoint, for Supabase Storage use `https://<project>.supabase.co/storage/v1/s3`. Bucket, access key, and secret key follow the same env vars regardless of provider.
+**S3-compatible storage**: Set `S3_ENDPOINT` to your S3-compatible endpoint. Powered by Bun's native `S3Client` (`Bun.s3`). For AWS S3 use `https://s3.amazonaws.com`, for Cloudflare R2 use your R2 endpoint, for Supabase Storage use `https://<project>.supabase.co/storage/v1/s3`. SeaweedFS works with the same endpoint shape (`http://localhost:8333` locally). Bucket, access key, and secret key follow the same env vars regardless of provider.
 
 **Resend**: Works everywhere — it's an HTTP API. Set `RESEND_API_KEY` and `EMAIL_FROM`.
 

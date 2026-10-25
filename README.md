@@ -9,7 +9,7 @@ A production-ready full-stack web application template built with TanStack Start
 - **Authentication**: [Better Auth](https://better-auth.com/) — email + password (with reset and verification emails), email OTP, passkeys, and optional Google OAuth. Rate limited (20 req/60 s). Session-guarded protected routes and redirect logic included.
 - **Database**: [Drizzle ORM](https://orm.drizzle.team/) with Bun's native SQL driver (`bun.SQL` / `drizzle-orm/bun-sql`).
 - **Account management**: `/settings` route — profile, linked providers, passkeys, and account deletion via Better Auth.
-- **File uploads**: An auth-guarded server function presigns PUT URLs with Bun's native S3 client (`Bun.s3`) for S3-compatible storage (MinIO locally; swap to AWS S3, Cloudflare R2, or Supabase Storage with an env var change).
+- **File uploads**: An auth-guarded server function presigns PUT URLs with Bun's native S3 client (`Bun.s3`) for S3-compatible storage (SeaweedFS locally; swap to AWS S3, Cloudflare R2, or Supabase Storage with an env var change).
 - **Email**: Transactional email with [Resend](https://resend.com/) and [React Email](https://react.email/), or an SMTP relay via `SMTP_URL` for local and E2E runs. OTP, verification, and password-reset templates included.
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
 - **Theme System**: Class-based light/dark switching via [next-themes](https://github.com/pacocoursey/next-themes).
@@ -27,7 +27,7 @@ A production-ready full-stack web application template built with TanStack Start
 ### Prerequisites
 
 - [Bun](https://bun.sh/) v1.4.4 or later
-- [Docker](https://www.docker.com/) for local services (Postgres, MinIO, Redis, Mailpit) and for the Testcontainers the integration and E2E suites start
+- [Docker](https://www.docker.com/) for local services (Postgres, SeaweedFS, Redis, Mailpit) and for the Testcontainers the integration and E2E suites start
 
 ### Setup
 
@@ -48,7 +48,7 @@ A production-ready full-stack web application template built with TanStack Start
 3. **Start local services**
 
    ```bash
-   docker compose up -d postgres redis minio minio_init mailpit
+   docker compose up -d postgres redis seaweedfs mailpit
    ```
 
    This starts the infrastructure only; the app container binds port 3000 and would clash with the dev server. Mailpit captures the password-reset email for the E2E suite.
