@@ -10,7 +10,7 @@ import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
 import { accountOptions } from "#/features/auth/accounts";
 import { PasswordInput } from "#/features/auth/components/password-input";
-import { PasswordSchema } from "#/features/auth/schema/password";
+import { PasswordSchema, PASSWORD_HINT } from "#/features/auth/schema/password";
 import { Button } from "#/components/ui/button";
 import {
   Dialog,
@@ -445,9 +445,7 @@ function ChangePasswordForm({
                 aria-invalid={field.state.meta.errors.length > 0}
               />
               <FieldError errors={field.state.meta.errors} />
-              <FieldDescription>
-                At least 8 characters, including a number and a symbol.
-              </FieldDescription>
+              <FieldDescription>{PASSWORD_HINT}</FieldDescription>
             </Field>
           )}
         </form.Field>

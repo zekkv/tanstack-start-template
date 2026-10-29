@@ -6,7 +6,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form-start";
 import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
-import { PasswordSchema } from "#/features/auth/schema/password";
+import { PasswordSchema, PASSWORD_HINT } from "#/features/auth/schema/password";
 import { FormError } from "#/components/custom/form-error";
 import { useState } from "react";
 
@@ -164,9 +164,7 @@ function SetNewPassword({ token }: { token: string }) {
                 aria-invalid={field.state.meta.errors.length > 0}
               />
               <FieldError errors={field.state.meta.errors} />
-              <FieldDescription>
-                At least 8 characters, including a number and a symbol.
-              </FieldDescription>
+              <FieldDescription>{PASSWORD_HINT}</FieldDescription>
             </Field>
           )}
         </form.Field>

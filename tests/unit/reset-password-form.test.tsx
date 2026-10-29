@@ -53,12 +53,12 @@ describe("ResetPasswordForm component", () => {
     const user = userEvent.setup();
     render(<ResetPasswordForm token="tok-123" />);
 
-    await user.type(screen.getByLabelText(/new password/i), "long-enough-pass1!");
+    await user.type(screen.getByLabelText(/new password/i), "Long-enough-pass1!");
     await user.click(screen.getByRole("button", { name: /save password/i }));
 
     await waitFor(() => {
       expect(authClient.resetPassword).toHaveBeenCalledWith({
-        newPassword: "long-enough-pass1!",
+        newPassword: "Long-enough-pass1!",
         token: "tok-123",
       });
       expect(mockNavigate).toHaveBeenCalledWith({ to: "/login" });

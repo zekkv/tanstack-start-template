@@ -12,9 +12,10 @@ import { Input } from "#/components/ui/input";
 import { PasswordInput } from "#/features/auth/components/password-input";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form-start";
+import { Circle, CircleCheck } from "lucide-react";
 import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
-import { PasswordSchema } from "#/features/auth/schema/password";
+import { PASSWORD_REQUIREMENTS, PasswordSchema } from "#/features/auth/schema/password";
 import { FormError } from "#/components/custom/form-error";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
@@ -24,10 +25,37 @@ const schema = z.object({
   password: PasswordSchema,
 });
 
+function PasswordRequirements({ password }: { password: string }) {
+  return (
+    <ul className="space-y-1.5" aria-label="Password requirements">
+      {PASSWORD_REQUIREMENTS.map(requirement => {
+        const met = requirement.test(password);
+        const Icon = met ? CircleCheck : Circle;
+        return (
+          <li
+            key={requirement.label}
+            aria-label={`${requirement.label}: ${met ? "met" : "not met"}`}
+            className="flex items-center gap-2 text-sm"
+          >
+            <Icon
+              aria-hidden="true"
+              className={cn("size-4", met ? "text-foreground" : "text-muted-foreground")}
+            />
+            <span className={met ? "text-foreground" : "text-muted-foreground"}>
+              {requirement.label}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export function SignupForm({ className, ...props }: React.ComponentProps<"div">) {
   const navigate = useNavigate();
   const router = useRouter();
   const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
+  const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
 
   const form = useForm({
     defaultValues: { email: "", password: "" },
@@ -135,15 +163,19 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
                 <PasswordInput
                   id="password"
                   autoComplete="new-password"
+                  maxLength={128}
                   value={field.state.value}
                   onChange={e => field.handleChange(e.target.value)}
+                  onFocus={() => setShowPasswordRequirements(true)}
                   onBlur={field.handleBlur}
                   aria-invalid={field.state.meta.errors.length > 0}
                 />
                 <FieldError errors={field.state.meta.errors} />
-                <FieldDescription>
-                  At least 8 characters, including a number and a symbol.
-                </FieldDescription>
+                {showPasswordRequirements && (
+                  <form.Subscribe selector={state => state.values.password}>
+                    {password => <PasswordRequirements password={password} />}
+                  </form.Subscribe>
+                )}
               </Field>
             )}
           </form.Field>
@@ -152,11 +184,19 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
             {formError => <FormError error={formError} />}
           </form.Subscribe>
 
-          <form.Subscribe selector={s => s.isSubmitting}>
-            {isSubmitting => (
+          <form.Subscribe
+            selector={s =>
+              s.isSubmitting
+                ? "submitting"
+                : PasswordSchema.safeParse(s.values.password).success
+                  ? "ready"
+                  : "locked"
+            }
+          >
+            {state => (
               <Field>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Creating account..." : "Create account"}
+                <Button type="submit" disabled={state !== "ready"}>
+                  {state === "submitting" ? "Creating account..." : "Create account"}
                 </Button>
               </Field>
             )}
