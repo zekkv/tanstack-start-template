@@ -47,7 +47,7 @@ vi.mock("#/env", () => ({
   },
 }));
 
-const user = { id: "usr_upload", email: "upload@example.com" };
+const user = { id: "usr_upload", email: "upload@example.com", emailVerified: true };
 const validRequest = { filename: "photo.jpg", contentType: "image/jpeg", size: 2048 };
 
 describe("createUploadUrl server function", () => {

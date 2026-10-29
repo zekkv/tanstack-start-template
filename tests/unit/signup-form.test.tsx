@@ -49,7 +49,7 @@ describe("SignupForm component", () => {
 
     expect(screen.getByText("Create an account")).toBeTruthy();
     expect(screen.getByLabelText(/email/i)).toBeTruthy();
-    expect(screen.getByLabelText(/password/i)).toBeTruthy();
+    expect(screen.getByLabelText(/^password$/i)).toBeTruthy();
     expect(screen.getByRole("button", { name: /create account/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /sign up with an email code/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /continue with google/i })).toBeTruthy();
@@ -78,7 +78,7 @@ describe("SignupForm component", () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "newuser@example.com");
-    await user.type(screen.getByLabelText(/password/i), "short");
+    await user.type(screen.getByLabelText(/^password$/i), "short");
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => {
@@ -94,7 +94,7 @@ describe("SignupForm component", () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "newuser@example.com");
-    await user.type(screen.getByLabelText(/password/i), "alllowercaseletters");
+    await user.type(screen.getByLabelText(/^password$/i), "alllowercaseletters");
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => {
@@ -110,7 +110,7 @@ describe("SignupForm component", () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "newuser@example.com");
-    await user.type(screen.getByLabelText(/password/i), "long-enough-pass1!");
+    await user.type(screen.getByLabelText(/^password$/i), "long-enough-pass1!");
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => {
@@ -127,7 +127,7 @@ describe("SignupForm component", () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "newuser@example.com");
-    await user.type(screen.getByLabelText(/password/i), "long-enough-pass1!");
+    await user.type(screen.getByLabelText(/^password$/i), "long-enough-pass1!");
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => {
@@ -152,7 +152,7 @@ describe("SignupForm component", () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "existing@example.com");
-    await user.type(screen.getByLabelText(/password/i), "long-enough-pass1!");
+    await user.type(screen.getByLabelText(/^password$/i), "long-enough-pass1!");
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => {

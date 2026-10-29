@@ -8,7 +8,7 @@ A production-ready full-stack web application template built with TanStack Start
 - **Server Engine**: [Nitro](https://nitro.unjs.io/) for high-performance server-side logic.
 - **Authentication**: [Better Auth](https://better-auth.com/) — email + password (with reset and verification emails), email OTP, passkeys, and optional Google OAuth. Rate limited (20 req/60 s). Session-guarded protected routes and redirect logic included.
 - **Database**: [Drizzle ORM](https://orm.drizzle.team/) with Bun's native SQL driver (`bun.SQL` / `drizzle-orm/bun-sql`).
-- **Account management**: `/settings` route — profile, linked providers, passkeys, and account deletion via Better Auth.
+- **Account management**: `/settings` route — profile, email verification, password change, linked providers, passkeys, and account deletion via Better Auth.
 - **File uploads**: An auth-guarded server function presigns PUT URLs with Bun's native S3 client (`Bun.s3`) for S3-compatible storage (SeaweedFS locally; swap to AWS S3, Cloudflare R2, or Supabase Storage with an env var change).
 - **Email**: Transactional email with [Resend](https://resend.com/) and [React Email](https://react.email/), or an SMTP relay via `SMTP_URL` for local and E2E runs. OTP, verification, and password-reset templates included.
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)

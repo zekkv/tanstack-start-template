@@ -9,6 +9,7 @@ import {
   FieldSeparator,
 } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
+import { PasswordInput } from "#/features/auth/components/password-input";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form-start";
 import { z } from "zod";
@@ -119,9 +120,8 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
             {field => (
               <Field>
                 <FieldLabel htmlFor="password">Password</FieldLabel>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   autoComplete="current-password"
                   value={field.state.value}
                   onChange={e => field.handleChange(e.target.value)}

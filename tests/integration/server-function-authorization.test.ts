@@ -137,7 +137,7 @@ describe("server-function authorization", () => {
         seam(() =>
           handleDeleteNote(
             { id: 2_147_483_647 },
-            { id: "usr_authz", email: "x@y.z" },
+            { id: "usr_authz", email: "x@y.z", emailVerified: true },
             database as never
           )
         ),

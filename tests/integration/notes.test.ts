@@ -14,11 +14,13 @@ import type { SessionUser } from "#/features/auth/session";
 const testUser: SessionUser = {
   id: "test-user-1",
   email: "john.doe@example.com",
+  emailVerified: true,
 };
 
 const otherUser: SessionUser = {
   id: "test-user-2",
   email: "jane.doe@example.com",
+  emailVerified: true,
 };
 
 describe("Notes Server Logic (Database Integration)", () => {
