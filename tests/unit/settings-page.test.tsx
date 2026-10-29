@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Passkey } from "@better-auth/passkey";
 
 import { SettingsPage } from "#/features/auth/components/settings-page";
 import type { SessionUser } from "#/features/auth/session";
@@ -13,10 +14,11 @@ let mockUser: SessionUser = {
   email: "alice@example.com",
   emailVerified: false,
 };
-let mockAccounts: Array<{ id: string; providerId: string }> = [
-  { id: "acc_1", providerId: "credential" },
+let mockAccounts: Array<{ id: string; providerId: string; updatedAt: Date }> = [
+  { id: "acc_1", providerId: "credential", updatedAt: new Date("2026-02-03T12:00:00Z") },
 ];
 let mockAccountsError = false;
+let mockPasskeys: Passkey[] = [];
 
 vi.mock("@tanstack/react-router", () => ({
   getRouteApi: () => ({
@@ -39,7 +41,7 @@ vi.mock("#/features/auth/accounts", () => ({
 
 vi.mock("#/lib/auth-client", () => ({
   authClient: {
-    useListPasskeys: () => ({ data: [], isPending: false }),
+    useListPasskeys: () => ({ data: mockPasskeys, isPending: false }),
     sendVerificationEmail: vi
       .fn<() => Promise<{ data: null; error: null }>>()
       .mockResolvedValue({ data: null, error: null }),
@@ -56,6 +58,9 @@ vi.mock("#/lib/auth-client", () => ({
       deletePasskey: vi
         .fn<() => Promise<{ data: null; error: null }>>()
         .mockResolvedValue({ data: null, error: null }),
+      updatePasskey: vi
+        .fn<() => Promise<{ data: null; error: null }>>()
+        .mockResolvedValue({ data: null, error: null }),
     },
   },
 }));
@@ -70,11 +75,21 @@ function renderPage() {
   );
 }
 
+async function openPasswordDialog(
+  user: ReturnType<typeof userEvent.setup>,
+  name = "Change password"
+) {
+  await user.click(await screen.findByRole("button", { name }));
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockUser = { id: "usr_1", email: "alice@example.com", emailVerified: false };
-  mockAccounts = [{ id: "acc_1", providerId: "credential" }];
+  mockAccounts = [
+    { id: "acc_1", providerId: "credential", updatedAt: new Date("2026-02-03T12:00:00Z") },
+  ];
   mockAccountsError = false;
+  mockPasskeys = [];
 });
 
 describe("SettingsPage component", () => {
@@ -125,11 +140,31 @@ describe("SettingsPage component", () => {
     expect(mockInvalidate).toHaveBeenCalled();
   });
 
+  it("shows when the password was last changed", async () => {
+    const changedAt = new Date("2026-02-03T12:00:00Z");
+    mockAccounts = [{ id: "acc_1", providerId: "credential", updatedAt: changedAt }];
+    renderPage();
+
+    expect(await screen.findByText("Last changed")).toBeTruthy();
+    expect(screen.getByText(changedAt.toLocaleDateString())).toBeTruthy();
+  });
+
+  it("keeps the change password form hidden until its button is clicked", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Change password" }));
+    expect(await screen.findByLabelText("Current password")).toBeTruthy();
+  });
+
   it("changes the password with the current one", async () => {
     const { authClient } = await import("#/lib/auth-client");
     const { toast } = await import("sonner");
     const user = userEvent.setup();
     renderPage();
+
+    expect(screen.queryByLabelText("Current password")).toBeNull();
+    await openPasswordDialog(user);
 
     await user.type(await screen.findByLabelText("Current password"), "OldPassword1!");
     await user.type(screen.getByLabelText("New password"), "NewPassword2!");
@@ -157,6 +192,7 @@ describe("SettingsPage component", () => {
     const user = userEvent.setup();
     renderPage();
 
+    await openPasswordDialog(user);
     await user.type(await screen.findByLabelText("Current password"), "WrongPassword1!");
     await user.type(screen.getByLabelText("New password"), "NewPassword2!");
     await user.click(screen.getByRole("button", { name: "Update password" }));
@@ -171,6 +207,7 @@ describe("SettingsPage component", () => {
     const user = userEvent.setup();
     renderPage();
 
+    await openPasswordDialog(user);
     await user.type(await screen.findByLabelText("Current password"), "OldPassword1!");
     await user.type(screen.getByLabelText("New password"), "short");
     await user.click(screen.getByRole("button", { name: "Update password" }));
@@ -186,6 +223,7 @@ describe("SettingsPage component", () => {
     const user = userEvent.setup();
     renderPage();
 
+    await openPasswordDialog(user);
     await user.click(await screen.findByRole("button", { name: "Email me a reset link" }));
 
     await waitFor(() => {
@@ -197,12 +235,13 @@ describe("SettingsPage component", () => {
   });
 
   it("offers a set-password link to accounts without a password", async () => {
-    mockAccounts = [{ id: "acc_google", providerId: "google" }];
+    mockAccounts = [{ id: "acc_google", providerId: "google", updatedAt: new Date() }];
     const { authClient } = await import("#/lib/auth-client");
     const { toast } = await import("sonner");
     const user = userEvent.setup();
     renderPage();
 
+    await openPasswordDialog(user, "Set a password");
     const button = await screen.findByRole("button", { name: "Email me a set-password link" });
     expect(screen.queryByLabelText("Current password")).toBeNull();
 
@@ -219,12 +258,49 @@ describe("SettingsPage component", () => {
 
   it("falls back to the set-password link when linked accounts fail to load", async () => {
     mockAccountsError = true;
+    const user = userEvent.setup();
     renderPage();
 
+    await openPasswordDialog(user);
     expect(
       await screen.findByRole("button", { name: "Email me a set-password link" })
     ).toBeTruthy();
     expect(screen.getByText(/could not load your linked accounts/i)).toBeTruthy();
     expect(screen.queryByLabelText("Current password")).toBeNull();
+  });
+
+  it("shows when a passkey was added and renames it", async () => {
+    const passkey: Passkey = {
+      id: "pk_1",
+      name: "Laptop",
+      publicKey: "public-key",
+      userId: "usr_1",
+      credentialID: "credential-id",
+      counter: 0,
+      deviceType: "singleDevice",
+      backedUp: false,
+      createdAt: new Date("2026-01-02T12:00:00Z"),
+    };
+    mockPasskeys = [passkey];
+    const { authClient } = await import("#/lib/auth-client");
+    const { toast } = await import("sonner");
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(screen.getByText(`Added ${passkey.createdAt.toLocaleDateString()}`)).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Rename passkey: Laptop" }));
+    const input = await screen.findByLabelText("Name");
+    await user.clear(input);
+    await user.type(input, "Work laptop");
+    await user.click(screen.getByRole("button", { name: "Save name" }));
+
+    await waitFor(() => {
+      expect(authClient.passkey.updatePasskey).toHaveBeenCalledWith({
+        id: "pk_1",
+        name: "Work laptop",
+      });
+      expect(toast.success).toHaveBeenCalledWith("Passkey renamed.");
+    });
   });
 });

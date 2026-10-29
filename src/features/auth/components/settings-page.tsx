@@ -1,8 +1,8 @@
 import { getRouteApi, useNavigate, useRouter } from "@tanstack/react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form-start";
 import { useState } from "react";
-import { BadgeCheck, CircleAlert, KeyRound, Link, MailCheck, Trash2 } from "lucide-react";
+import { BadgeCheck, CircleAlert, KeyRound, Link, MailCheck, Pencil, Trash2 } from "lucide-react";
 import type { Passkey } from "@better-auth/passkey";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -12,7 +12,18 @@ import { accountOptions } from "#/features/auth/accounts";
 import { PasswordInput } from "#/features/auth/components/password-input";
 import { PasswordSchema } from "#/features/auth/schema/password";
 import { Button } from "#/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "#/components/ui/dialog";
 import { Field, FieldDescription, FieldError, FieldLabel } from "#/components/ui/field";
+import { Input } from "#/components/ui/input";
 import { Skeleton } from "#/components/ui/skeleton";
 import { FormError } from "#/components/custom/form-error";
 import { Page } from "#/components/custom/page";
@@ -27,6 +38,11 @@ const PROVIDER_LABELS: Record<string, string> = {
 
 function getProviderLabel(providerId: string) {
   return PROVIDER_LABELS[providerId] ?? providerId.charAt(0).toUpperCase() + providerId.slice(1);
+}
+
+/** Dates arrive as `Date` from the server and as strings over the passkey API. */
+function formatDate(value: Date | string | null | undefined) {
+  return value ? new Date(value).toLocaleDateString() : "—";
 }
 
 export function SettingsPage() {
@@ -45,7 +61,11 @@ export function SettingsPage() {
 
   const { data: passkeys, isPending: passkeysPending } = authClient.useListPasskeys();
   const { data: accounts, status } = useQuery(accountOptions(user.id));
+  const passwordAccount = accounts?.find(account => account.providerId === "credential");
+  const hasPassword = status === "success" ? Boolean(passwordAccount) : undefined;
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [editingPasskey, setEditingPasskey] = useState<Passkey | null>(null);
   const sendVerification = useMutation({
     mutationFn: async () => {
       const { error } = await authClient.sendVerificationEmail({
@@ -71,6 +91,17 @@ export function SettingsPage() {
     mutationFn: async (passkeyId: string) => {
       const { error } = await authClient.passkey.deletePasskey({ id: passkeyId });
       if (error) throw new Error(error.message ?? "Failed to delete passkey");
+    },
+    onError: error => toast.error(error.message),
+  });
+  const renamePasskey = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await authClient.passkey.updatePasskey({ id, name });
+      if (error) throw new Error(error.message ?? "Failed to rename passkey");
+    },
+    onSuccess: () => {
+      setEditingPasskey(null);
+      toast.success("Passkey renamed.");
     },
     onError: error => toast.error(error.message),
   });
@@ -142,18 +173,42 @@ export function SettingsPage() {
         <SettingsSection title="Password">
           {status === "pending" ? (
             <div className="space-y-3" aria-busy="true">
-              <Skeleton className="h-9 w-full" />
-              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-8 w-32" />
             </div>
           ) : (
-            <ChangePasswordForm
-              email={user.email}
-              hasPassword={
-                status === "success"
-                  ? accounts.some(account => account.providerId === "credential")
-                  : undefined
-              }
-            />
+            <>
+              <Row
+                label="Last changed"
+                value={passwordAccount ? formatDate(passwordAccount.updatedAt) : "—"}
+              />
+              <Dialog open={passwordOpen} onOpenChange={setPasswordOpen}>
+                <DialogTrigger render={<Button type="button" variant="outline" size="sm" />}>
+                  <KeyRound className="size-4" />
+                  {hasPassword === false ? "Set a password" : "Change password"}
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>
+                      {hasPassword === false ? "Set a password" : "Change password"}
+                    </DialogTitle>
+                    <DialogDescription>
+                      {hasPassword === true
+                        ? `Last changed ${formatDate(passwordAccount?.updatedAt)}. Updating it signs out your other sessions.`
+                        : hasPassword === false
+                          ? "This account has no password. We can email you a link to set one."
+                          : "We could not load your linked accounts. You can still email a link to set or reset your password."}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <ChangePasswordForm
+                    email={user.email}
+                    userId={user.id}
+                    hasPassword={hasPassword}
+                    onDone={() => setPasswordOpen(false)}
+                  />
+                </DialogContent>
+              </Dialog>
+            </>
           )}
         </SettingsSection>
 
@@ -168,21 +223,37 @@ export function SettingsPage() {
           ) : (
             <ul className="space-y-2">
               {passkeys.map((pk: Passkey) => (
-                <li key={pk.id} className="flex items-center justify-between">
+                <li key={pk.id} className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
                     <KeyRound className="size-4 text-muted-foreground" />
-                    <span className="text-sm">{pk.name ?? "Passkey"}</span>
+                    <div>
+                      <p className="text-sm">{pk.name ?? "Passkey"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Added {formatDate(pk.createdAt)}
+                      </p>
+                    </div>
                   </div>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon-sm"
-                    disabled={deletePasskey.isPending && deletePasskey.variables === pk.id}
-                    aria-label={`Delete passkey: ${pk.name ?? "Passkey"}`}
-                    onClick={() => deletePasskey.mutate(pk.id)}
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-sm"
+                      aria-label={`Rename passkey: ${pk.name ?? "Passkey"}`}
+                      onClick={() => setEditingPasskey(pk)}
+                    >
+                      <Pencil className="size-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon-sm"
+                      disabled={deletePasskey.isPending && deletePasskey.variables === pk.id}
+                      aria-label={`Delete passkey: ${pk.name ?? "Passkey"}`}
+                      onClick={() => deletePasskey.mutate(pk.id)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -204,6 +275,27 @@ export function SettingsPage() {
               Add passkey
             </Button>
           </div>
+          <Dialog
+            open={editingPasskey !== null}
+            onOpenChange={open => {
+              if (!open) setEditingPasskey(null);
+            }}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Rename passkey</DialogTitle>
+                <DialogDescription>Give this passkey a name you will recognise.</DialogDescription>
+              </DialogHeader>
+              {editingPasskey && (
+                <RenamePasskeyForm
+                  key={editingPasskey.id}
+                  passkey={editingPasskey}
+                  isPending={renamePasskey.isPending}
+                  onRename={name => renamePasskey.mutate({ id: editingPasskey.id, name })}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
         </SettingsSection>
 
         {/* Danger zone */}
@@ -247,11 +339,16 @@ const changePasswordSchema = z.object({
 /** Change the password with the current one, or fall back to the emailed reset link. */
 function ChangePasswordForm({
   email,
+  userId,
   hasPassword,
+  onDone,
 }: {
   email: string;
+  userId: string;
   hasPassword: boolean | undefined;
+  onDone: () => void;
 }) {
+  const queryClient = useQueryClient();
   const requestReset = useMutation({
     mutationFn: async () => {
       const { error } = await authClient.requestPasswordReset({
@@ -260,12 +357,14 @@ function ChangePasswordForm({
       });
       if (error) throw new Error(error.message ?? "Failed to send the reset link");
     },
-    onSuccess: () =>
+    onSuccess: () => {
       toast.success(
-        hasPassword
-          ? "Reset link sent. Check your inbox."
-          : "Set-password link sent. Check your inbox."
-      ),
+        hasPassword === false
+          ? "Set-password link sent. Check your inbox."
+          : "Reset link sent. Check your inbox."
+      );
+      onDone();
+    },
     onError: error => toast.error(error.message),
   });
 
@@ -288,28 +387,23 @@ function ChangePasswordForm({
         return;
       }
       form.reset();
+      await queryClient.invalidateQueries({ queryKey: accountOptions(userId).queryKey });
       toast.success("Password updated. Your other sessions were signed out.");
+      onDone();
     },
   });
 
   if (hasPassword !== true) {
     return (
-      <div className="space-y-2">
-        <FieldDescription>
-          {hasPassword === false
-            ? "This account has no password. We can email you a link to set one."
-            : "We could not load your linked accounts. You can still email a link to set or reset your password."}
-        </FieldDescription>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={requestReset.isPending}
-          onClick={() => requestReset.mutate()}
-        >
-          {requestReset.isPending ? "Sending..." : "Email me a set-password link"}
-        </Button>
-      </div>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={requestReset.isPending}
+        onClick={() => requestReset.mutate()}
+      >
+        {requestReset.isPending ? "Sending..." : "Email me a set-password link"}
+      </Button>
     );
   }
 
@@ -391,6 +485,47 @@ function ChangePasswordForm({
   );
 }
 
+function RenamePasskeyForm({
+  passkey,
+  isPending,
+  onRename,
+}: {
+  passkey: Passkey;
+  isPending: boolean;
+  onRename: (name: string) => void;
+}) {
+  const [name, setName] = useState(passkey.name ?? "");
+  const trimmed = name.trim();
+
+  return (
+    <form
+      onSubmit={event => {
+        event.preventDefault();
+        if (trimmed) onRename(trimmed);
+      }}
+    >
+      <Field>
+        <FieldLabel htmlFor="passkey-name">Name</FieldLabel>
+        <Input
+          id="passkey-name"
+          value={name}
+          onChange={event => setName(event.target.value)}
+          maxLength={64}
+          autoComplete="off"
+        />
+      </Field>
+      <DialogFooter className="mt-6">
+        <DialogClose render={<Button type="button" variant="outline" size="sm" />}>
+          Cancel
+        </DialogClose>
+        <Button type="submit" size="sm" disabled={isPending || !trimmed}>
+          {isPending ? "Saving..." : "Save name"}
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
 /**
  * Route-level pending view (`/settings` prefetches the linked accounts): the same sections and
  * row shapes as skeletons, so the swap to real data does not shift the layout.
@@ -412,8 +547,7 @@ export function SettingsPageSkeleton() {
         </SettingsSection>
 
         <SettingsSection title="Password">
-          <Skeleton className="h-9 w-full" />
-          <Skeleton className="h-9 w-full" />
+          <RowSkeleton />
           <Skeleton className="h-8 w-32" />
         </SettingsSection>
 
