@@ -53,9 +53,6 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-bun
       - name: Audit dependencies
-        # Full audit output still reports deepmerge@4.3.1 (low), which has no patched release;
-        # `--audit-level=moderate` is the project's bar. The previous braces ignore was dropped
-        # because GHSA-vfj7-8cjw-p6xm was withdrawn as not practically exploitable.
         run: bun audit --audit-level=moderate
 
   codeql:
