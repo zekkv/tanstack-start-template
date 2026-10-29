@@ -35,11 +35,11 @@ function PasswordRequirements({ password }: { password: string }) {
           <li
             key={requirement.label}
             aria-label={`${requirement.label}: ${met ? "met" : "not met"}`}
-            className="flex items-center gap-2 text-sm"
+            className="flex items-center gap-2 text-xs"
           >
             <Icon
               aria-hidden="true"
-              className={cn("size-4", met ? "text-foreground" : "text-muted-foreground")}
+              className={cn("size-3.5", met ? "text-foreground" : "text-muted-foreground")}
             />
             <span className={met ? "text-foreground" : "text-muted-foreground"}>
               {requirement.label}
