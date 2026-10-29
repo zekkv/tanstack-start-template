@@ -16,15 +16,30 @@ import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
 import { FormError } from "#/components/custom/form-error";
 import { useMutation } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+
+const emptySubscribe = () => () => {};
 
 const schema = z.object({
   email: z.email("Enter a valid email address"),
   password: z.string().min(1, "Enter your password"),
 });
 
+const LAST_LOGIN_METHOD_LABELS: Record<string, string> = {
+  email: "email and password",
+  "email-otp": "an email code",
+  passkey: "a passkey",
+  google: "Google",
+};
+
 export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
   const navigate = useNavigate();
+  // Cookie-backed, so read it after hydration while keeping the server render deterministic.
+  const lastLoginMethod = useSyncExternalStore(
+    emptySubscribe,
+    () => authClient.getLastUsedLoginMethod(),
+    () => null
+  );
 
   useEffect(() => {
     void (async () => {
@@ -95,6 +110,11 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
             <FieldDescription>
               Don&apos;t have an account? <Link to="/signup">Sign up</Link>
             </FieldDescription>
+            {lastLoginMethod && (
+              <p className="text-xs text-muted-foreground">
+                Last sign-in used {LAST_LOGIN_METHOD_LABELS[lastLoginMethod] ?? lastLoginMethod}.
+              </p>
+            )}
           </div>
 
           <form.Field name="email">

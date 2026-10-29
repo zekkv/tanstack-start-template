@@ -105,6 +105,7 @@ Handled by **Better Auth**. Supported flows:
 - **Email OTP** — sign in and sign up via one-time code. Always available.
 - **Passkeys** — register and authenticate with a device credential. Always available.
 - **Google OAuth** — enabled only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set. The app boots and functions without them.
+- **Last login method** — the `lastLoginMethod` plugin stores the method in `user.last_login_method` (`storeInDatabase: true`) and sets a non-httpOnly cookie. `/login` reads the cookie to show "Last sign-in used …"; the persisted field is also available as `session.user.lastLoginMethod`.
 
 Rate limiting is configured at 20 requests per 60-second window using Better Auth's built-in `rateLimit` option.
 

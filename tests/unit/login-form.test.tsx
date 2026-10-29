@@ -15,6 +15,7 @@ vi.mock("@tanstack/react-router", () => ({
 // Mock better-auth client
 vi.mock("#/lib/auth-client", () => ({
   authClient: {
+    getLastUsedLoginMethod: vi.fn<() => string | null>().mockReturnValue("google"),
     signIn: {
       email: vi
         .fn<() => Promise<{ data: null; error: null }>>()
@@ -60,6 +61,14 @@ describe("LoginForm component", () => {
     expect(screen.getByRole("button", { name: /^sign in$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /email me a sign-in code/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /sign in with passkey/i })).toBeTruthy();
+  });
+
+  it("shows the last used sign-in method", async () => {
+    renderForm();
+
+    await waitFor(() => {
+      expect(screen.getByText(/last sign-in used google/i)).toBeTruthy();
+    });
   });
 
   it("shows validation error for invalid email on submit", async () => {
