@@ -12,10 +12,10 @@ import { Input } from "#/components/ui/input";
 import { PasswordInput } from "#/features/auth/components/password-input";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form-start";
-import { Circle, CircleCheck } from "lucide-react";
 import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
-import { PASSWORD_REQUIREMENTS, PasswordSchema } from "#/features/auth/schema/password";
+import { PasswordSchema } from "#/features/auth/schema/password";
+import { PasswordRequirements } from "#/features/auth/components/password-requirements";
 import { FormError } from "#/components/custom/form-error";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
@@ -24,32 +24,6 @@ const schema = z.object({
   email: z.email("Enter a valid email address"),
   password: PasswordSchema,
 });
-
-function PasswordRequirements({ password }: { password: string }) {
-  return (
-    <ul className="space-y-1.5" aria-label="Password requirements">
-      {PASSWORD_REQUIREMENTS.map(requirement => {
-        const met = requirement.test(password);
-        const Icon = met ? CircleCheck : Circle;
-        return (
-          <li
-            key={requirement.label}
-            aria-label={`${requirement.label}: ${met ? "met" : "not met"}`}
-            className="flex items-center gap-2 text-xs"
-          >
-            <Icon
-              aria-hidden="true"
-              className={cn("size-3.5", met ? "text-foreground" : "text-muted-foreground")}
-            />
-            <span className={met ? "text-foreground" : "text-muted-foreground"}>
-              {requirement.label}
-            </span>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
 
 export function SignupForm({ className, ...props }: React.ComponentProps<"div">) {
   const navigate = useNavigate();
