@@ -72,6 +72,7 @@ export function Header() {
           >
             <GitHubMark />
           </Button>
+          <ThemeToggle />
           {user && (
             <Button
               type="button"
@@ -85,7 +86,6 @@ export function Header() {
               <LogOut className="size-3.5" />
             </Button>
           )}
-          <ThemeToggle />
         </nav>
       </div>
     </header>
