@@ -22,8 +22,7 @@ This project is opinionated towards [Bun](https://bun.sh/) and renders on the se
 │   ├── DEPLOYMENT.md     # Hosting options and platform config
 │   ├── DESIGN.md         # Visual system notes
 │   └── DEVELOPMENT.md    # Local setup, scripts, database, and testing guide
-├── AGENTS.md             # Developer guide for agents (also CLAUDE.md)
-├── CLAUDE.md             # Claude Code entry point — includes AGENTS.md
+├── AGENTS.md             # Developer guide for agents
 ├── src/
 │   ├── components/
 │   │   ├── layout/       # Header and shell layout
