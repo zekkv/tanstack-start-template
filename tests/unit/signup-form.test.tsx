@@ -43,6 +43,10 @@ function renderForm() {
   );
 }
 
+function requirement(label: string, state: "met" | "not met") {
+  return screen.getByRole("listitem", { name: `${label}: ${state}` });
+}
+
 describe("SignupForm component", () => {
   it("renders email and password inputs, create account button, and Google OAuth button", () => {
     renderForm();
@@ -53,11 +57,14 @@ describe("SignupForm component", () => {
     expect(screen.getByRole("button", { name: /create account/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /sign up with an email code/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /continue with google/i })).toBeTruthy();
+    expect(screen.queryByRole("list", { name: "Password requirements" })).toBeNull();
   });
 
   it("shows validation error when submitting an invalid email", async () => {
+    const user = userEvent.setup();
     renderForm();
 
+    await user.type(screen.getByLabelText(/^password$/i), "Password123!");
     const emailInput = screen.getByLabelText(/email/i);
     // `a@b` passes the browser's own `type="email"` constraint (which blocks submission in a
     // browser), and fails the app's Zod schema — the error the form is expected to surface.
@@ -71,37 +78,30 @@ describe("SignupForm component", () => {
     });
   });
 
-  it("rejects a password shorter than 8 characters", async () => {
-    const { authClient } = await import("#/lib/auth-client");
-    vi.mocked(authClient.signUp.email).mockClear();
+  it("checks off each password requirement and unlocks the button when all pass", async () => {
     const user = userEvent.setup();
     renderForm();
 
-    await user.type(screen.getByLabelText(/email/i), "newuser@example.com");
-    await user.type(screen.getByLabelText(/^password$/i), "short");
-    await user.click(screen.getByRole("button", { name: /create account/i }));
+    const password = screen.getByLabelText(/^password$/i);
+    const button = screen.getByRole("button", { name: /create account/i });
+    expect(screen.queryByRole("list", { name: "Password requirements" })).toBeNull();
 
-    await waitFor(() => {
-      expect(screen.getByText("Password must be at least 8 characters")).toBeTruthy();
-    });
-    expect(authClient.signUp.email).not.toHaveBeenCalled();
-  });
+    await user.click(password);
+    expect(screen.getByRole("list", { name: "Password requirements" })).toBeTruthy();
+    expect(requirement("Uppercase letter", "not met")).toBeTruthy();
+    expect(button.hasAttribute("disabled")).toBe(true);
 
-  it("rejects a long password with no number or symbol", async () => {
-    const { authClient } = await import("#/lib/auth-client");
-    vi.mocked(authClient.signUp.email).mockClear();
-    const user = userEvent.setup();
-    renderForm();
+    await user.type(password, "Password1");
+    expect(requirement("Uppercase letter", "met")).toBeTruthy();
+    expect(requirement("Lowercase letter", "met")).toBeTruthy();
+    expect(requirement("Number", "met")).toBeTruthy();
+    expect(requirement("8 characters or more", "met")).toBeTruthy();
+    expect(requirement("Special character (e.g. !?<>@#$%)", "not met")).toBeTruthy();
+    expect(button.hasAttribute("disabled")).toBe(true);
 
-    await user.type(screen.getByLabelText(/email/i), "newuser@example.com");
-    await user.type(screen.getByLabelText(/^password$/i), "alllowercaseletters");
-    await user.click(screen.getByRole("button", { name: /create account/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText("Password must contain at least one number")).toBeTruthy();
-      expect(screen.getByText("Password must contain at least one symbol")).toBeTruthy();
-    });
-    expect(authClient.signUp.email).not.toHaveBeenCalled();
+    await user.type(password, "!");
+    expect(requirement("Special character (e.g. !?<>@#$%)", "met")).toBeTruthy();
+    expect(button.hasAttribute("disabled")).toBe(false);
   });
 
   it("creates an account with email and password", async () => {
@@ -110,14 +110,14 @@ describe("SignupForm component", () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "newuser@example.com");
-    await user.type(screen.getByLabelText(/^password$/i), "long-enough-pass1!");
+    await user.type(screen.getByLabelText(/^password$/i), "Long-enough-pass1!");
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => {
       expect(authClient.signUp.email).toHaveBeenCalledWith({
         name: "",
         email: "newuser@example.com",
-        password: "long-enough-pass1!",
+        password: "Long-enough-pass1!",
       });
     });
   });
@@ -127,7 +127,7 @@ describe("SignupForm component", () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "newuser@example.com");
-    await user.type(screen.getByLabelText(/^password$/i), "long-enough-pass1!");
+    await user.type(screen.getByLabelText(/^password$/i), "Long-enough-pass1!");
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => {
@@ -152,7 +152,7 @@ describe("SignupForm component", () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "existing@example.com");
-    await user.type(screen.getByLabelText(/^password$/i), "long-enough-pass1!");
+    await user.type(screen.getByLabelText(/^password$/i), "Long-enough-pass1!");
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => {

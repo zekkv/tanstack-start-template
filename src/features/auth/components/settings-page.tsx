@@ -10,6 +10,7 @@ import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
 import { accountOptions } from "#/features/auth/accounts";
 import { PasswordInput } from "#/features/auth/components/password-input";
+import { PasswordRequirements } from "#/features/auth/components/password-requirements";
 import { PasswordSchema } from "#/features/auth/schema/password";
 import { Button } from "#/components/ui/button";
 import {
@@ -349,6 +350,7 @@ function ChangePasswordForm({
   onDone: () => void;
 }) {
   const queryClient = useQueryClient();
+  const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
   const requestReset = useMutation({
     mutationFn: async () => {
       const { error } = await authClient.requestPasswordReset({
@@ -441,13 +443,16 @@ function ChangePasswordForm({
                 autoComplete="new-password"
                 value={field.state.value}
                 onChange={event => field.handleChange(event.target.value)}
+                onFocus={() => setShowPasswordRequirements(true)}
                 onBlur={field.handleBlur}
                 aria-invalid={field.state.meta.errors.length > 0}
               />
               <FieldError errors={field.state.meta.errors} />
-              <FieldDescription>
-                At least 8 characters, including a number and a symbol.
-              </FieldDescription>
+              {showPasswordRequirements && (
+                <form.Subscribe selector={state => state.values.newPassword}>
+                  {password => <PasswordRequirements password={password} />}
+                </form.Subscribe>
+              )}
             </Field>
           )}
         </form.Field>
@@ -457,10 +462,18 @@ function ChangePasswordForm({
         </form.Subscribe>
 
         <div className="flex flex-wrap items-center gap-2">
-          <form.Subscribe selector={state => state.isSubmitting}>
-            {isSubmitting => (
-              <Button type="submit" size="sm" disabled={isSubmitting}>
-                {isSubmitting ? "Updating..." : "Update password"}
+          <form.Subscribe
+            selector={state =>
+              state.isSubmitting
+                ? "submitting"
+                : PasswordSchema.safeParse(state.values.newPassword).success
+                  ? "ready"
+                  : "locked"
+            }
+          >
+            {state => (
+              <Button type="submit" size="sm" disabled={state !== "ready"}>
+                {state === "submitting" ? "Updating..." : "Update password"}
               </Button>
             )}
           </form.Subscribe>

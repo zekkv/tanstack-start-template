@@ -15,6 +15,7 @@ import { useForm } from "@tanstack/react-form-start";
 import { z } from "zod";
 import { authClient } from "#/lib/auth-client";
 import { PasswordSchema } from "#/features/auth/schema/password";
+import { PasswordRequirements } from "#/features/auth/components/password-requirements";
 import { FormError } from "#/components/custom/form-error";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
@@ -28,6 +29,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
   const navigate = useNavigate();
   const router = useRouter();
   const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
+  const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
 
   const form = useForm({
     defaultValues: { email: "", password: "" },
@@ -135,15 +137,19 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
                 <PasswordInput
                   id="password"
                   autoComplete="new-password"
+                  maxLength={128}
                   value={field.state.value}
                   onChange={e => field.handleChange(e.target.value)}
+                  onFocus={() => setShowPasswordRequirements(true)}
                   onBlur={field.handleBlur}
                   aria-invalid={field.state.meta.errors.length > 0}
                 />
                 <FieldError errors={field.state.meta.errors} />
-                <FieldDescription>
-                  At least 8 characters, including a number and a symbol.
-                </FieldDescription>
+                {showPasswordRequirements && (
+                  <form.Subscribe selector={state => state.values.password}>
+                    {password => <PasswordRequirements password={password} />}
+                  </form.Subscribe>
+                )}
               </Field>
             )}
           </form.Field>
@@ -152,11 +158,19 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
             {formError => <FormError error={formError} />}
           </form.Subscribe>
 
-          <form.Subscribe selector={s => s.isSubmitting}>
-            {isSubmitting => (
+          <form.Subscribe
+            selector={s =>
+              s.isSubmitting
+                ? "submitting"
+                : PasswordSchema.safeParse(s.values.password).success
+                  ? "ready"
+                  : "locked"
+            }
+          >
+            {state => (
               <Field>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Creating account..." : "Create account"}
+                <Button type="submit" disabled={state !== "ready"}>
+                  {state === "submitting" ? "Creating account..." : "Create account"}
                 </Button>
               </Field>
             )}

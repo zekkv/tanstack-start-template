@@ -202,20 +202,30 @@ describe("SettingsPage component", () => {
     });
   });
 
-  it("enforces the password policy before calling the server", async () => {
-    const { authClient } = await import("#/lib/auth-client");
+  it("keeps the update button locked until the new password meets every requirement", async () => {
     const user = userEvent.setup();
     renderPage();
 
     await openPasswordDialog(user);
     await user.type(await screen.findByLabelText("Current password"), "OldPassword1!");
-    await user.type(screen.getByLabelText("New password"), "short");
-    await user.click(screen.getByRole("button", { name: "Update password" }));
+    const newPassword = screen.getByLabelText("New password");
+    const button = screen.getByRole("button", { name: "Update password" });
+    expect(button.hasAttribute("disabled")).toBe(true);
+    expect(screen.queryByRole("list", { name: "Password requirements" })).toBeNull();
 
-    await waitFor(() => {
-      expect(screen.getByText("Password must be at least 8 characters")).toBeTruthy();
-    });
-    expect(authClient.changePassword).not.toHaveBeenCalled();
+    await user.click(newPassword);
+    expect(screen.getByRole("list", { name: "Password requirements" })).toBeTruthy();
+
+    await user.type(newPassword, "Password2");
+    expect(
+      screen.getByRole("listitem", {
+        name: "Special character (e.g. !?<>@#$%): not met",
+      })
+    ).toBeTruthy();
+    expect(button.hasAttribute("disabled")).toBe(true);
+
+    await user.type(newPassword, "!");
+    expect(button.hasAttribute("disabled")).toBe(false);
   });
 
   it("emails a reset link when the current password is unknown", async () => {
