@@ -35,6 +35,8 @@ export const auth = betterAuth({
 
   emailAndPassword: {
     enabled: true,
+    // A reset is often the response to a compromised password; drop every existing session.
+    revokeSessionsOnPasswordReset: true,
     async sendResetPassword({ user, url }) {
       logger.info("Sending password reset email", { email: user.email });
       await sendEmail(

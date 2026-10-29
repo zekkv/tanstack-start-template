@@ -75,8 +75,11 @@ test.describe("Reset password journey", () => {
     ]);
     expect(resetResponse.ok(), await resetResponse.text()).toBe(true);
 
-    // The sign-up session survives the reset, so /login would bounce a signed-in visitor to the
-    // dashboard. Sign out first, or the new password is never actually exercised.
+    // The reset revokes every session, so the cookie the browser still holds is dead.
+    const staleSession = await page.request.get("/api/auth/get-session");
+    expect(await staleSession.json()).toBeNull();
+
+    // Clear the dead cookie before exercising the new password.
     const signOut = await page.request.post("/api/auth/sign-out", {
       headers: { Origin: "http://localhost:3000" },
     });

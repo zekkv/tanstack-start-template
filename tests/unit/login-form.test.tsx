@@ -56,7 +56,7 @@ describe("LoginForm component", () => {
 
     expect(screen.getByText("Welcome back")).toBeTruthy();
     expect(screen.getByLabelText(/email/i)).toBeTruthy();
-    expect(screen.getByLabelText(/password/i)).toBeTruthy();
+    expect(screen.getByLabelText(/^password$/i)).toBeTruthy();
     expect(screen.getByRole("button", { name: /^sign in$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /email me a sign-in code/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /sign in with passkey/i })).toBeTruthy();
@@ -84,7 +84,7 @@ describe("LoginForm component", () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "test@example.com");
-    await user.type(screen.getByLabelText(/password/i), "correct-horse");
+    await user.type(screen.getByLabelText(/^password$/i), "correct-horse");
     await user.click(screen.getByRole("button", { name: /^sign in$/i }));
 
     await waitFor(() => {
@@ -106,7 +106,7 @@ describe("LoginForm component", () => {
     renderForm();
 
     await user.type(screen.getByLabelText(/email/i), "test@example.com");
-    await user.type(screen.getByLabelText(/password/i), "wrong-password");
+    await user.type(screen.getByLabelText(/^password$/i), "wrong-password");
     await user.click(screen.getByRole("button", { name: /^sign in$/i }));
 
     await waitFor(() => {

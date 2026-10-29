@@ -32,6 +32,7 @@ describe("getSessionUser helper", () => {
     expect(user).toEqual({
       id: "usr_42",
       email: "alice@example.com",
+      emailVerified: true,
       name: "Alice",
       image: "https://example.com/avatar.jpg",
     });

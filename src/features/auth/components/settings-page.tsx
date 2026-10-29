@@ -1,14 +1,20 @@
-import { getRouteApi, useNavigate } from "@tanstack/react-router";
+import { getRouteApi, useNavigate, useRouter } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useForm } from "@tanstack/react-form-start";
 import { useState } from "react";
-import { Trash2, KeyRound, Link } from "lucide-react";
+import { BadgeCheck, CircleAlert, KeyRound, Link, MailCheck, Trash2 } from "lucide-react";
 import type { Passkey } from "@better-auth/passkey";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { authClient } from "#/lib/auth-client";
 import { accountOptions } from "#/features/auth/accounts";
+import { PasswordInput } from "#/features/auth/components/password-input";
+import { PasswordSchema } from "#/features/auth/schema/password";
 import { Button } from "#/components/ui/button";
+import { Field, FieldDescription, FieldError, FieldLabel } from "#/components/ui/field";
 import { Skeleton } from "#/components/ui/skeleton";
+import { FormError } from "#/components/custom/form-error";
 import { Page } from "#/components/custom/page";
 
 const routeApi = getRouteApi("/_authenticated/settings");
@@ -26,6 +32,7 @@ function getProviderLabel(providerId: string) {
 export function SettingsPage() {
   const { user } = routeApi.useRouteContext();
   const navigate = useNavigate();
+  const router = useRouter();
 
   async function handleDeleteAccount() {
     const { error } = await authClient.deleteUser({});
@@ -39,6 +46,27 @@ export function SettingsPage() {
   const { data: passkeys, isPending: passkeysPending } = authClient.useListPasskeys();
   const { data: accounts, status } = useQuery(accountOptions(user.id));
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const sendVerification = useMutation({
+    mutationFn: async () => {
+      const { error } = await authClient.sendVerificationEmail({
+        email: user.email,
+        callbackURL: "/settings",
+      });
+      if (error) {
+        throw Object.assign(new Error(error.message ?? "Failed to send the verification email"), {
+          code: error.code,
+        });
+      }
+    },
+    onSuccess: () => toast.success("Verification email sent. Check your inbox."),
+    onError: error => {
+      toast.error(error.message);
+      // A different tab may already have verified the address; refresh the status in this one.
+      if ("code" in error && error.code === "EMAIL_ALREADY_VERIFIED") {
+        void router.invalidate();
+      }
+    },
+  });
   const deletePasskey = useMutation({
     mutationFn: async (passkeyId: string) => {
       const { error } = await authClient.passkey.deletePasskey({ id: passkeyId });
@@ -53,6 +81,35 @@ export function SettingsPage() {
         {/* Identity */}
         <SettingsSection title="Profile">
           <Row label="Email" value={user.email} />
+          <div className="flex items-center justify-between gap-4 py-1">
+            <span className="text-sm text-muted-foreground">Email status</span>
+            {user.emailVerified ? (
+              <span className="flex items-center gap-1.5 text-sm font-medium">
+                <BadgeCheck className="size-4 text-muted-foreground" />
+                Verified
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-sm font-medium">
+                <CircleAlert className="size-4 text-muted-foreground" />
+                Not verified
+              </span>
+            )}
+          </div>
+          {!user.emailVerified && (
+            <div className="space-y-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={sendVerification.isPending}
+                onClick={() => sendVerification.mutate()}
+              >
+                <MailCheck className="size-4" />
+                {sendVerification.isPending ? "Sending..." : "Verify email"}
+              </Button>
+              <FieldDescription>We will email you a link to confirm this address.</FieldDescription>
+            </div>
+          )}
           {user.name && <Row label="Name" value={user.name} />}
         </SettingsSection>
 
@@ -78,6 +135,25 @@ export function SettingsPage() {
                 </li>
               ))}
             </ul>
+          )}
+        </SettingsSection>
+
+        {/* Password */}
+        <SettingsSection title="Password">
+          {status === "pending" ? (
+            <div className="space-y-3" aria-busy="true">
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-full" />
+            </div>
+          ) : (
+            <ChangePasswordForm
+              email={user.email}
+              hasPassword={
+                status === "success"
+                  ? accounts.some(account => account.providerId === "credential")
+                  : undefined
+              }
+            />
           )}
         </SettingsSection>
 
@@ -163,6 +239,158 @@ export function SettingsPage() {
   );
 }
 
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Enter your current password"),
+  newPassword: PasswordSchema,
+});
+
+/** Change the password with the current one, or fall back to the emailed reset link. */
+function ChangePasswordForm({
+  email,
+  hasPassword,
+}: {
+  email: string;
+  hasPassword: boolean | undefined;
+}) {
+  const requestReset = useMutation({
+    mutationFn: async () => {
+      const { error } = await authClient.requestPasswordReset({
+        email,
+        redirectTo: "/reset-password",
+      });
+      if (error) throw new Error(error.message ?? "Failed to send the reset link");
+    },
+    onSuccess: () =>
+      toast.success(
+        hasPassword
+          ? "Reset link sent. Check your inbox."
+          : "Set-password link sent. Check your inbox."
+      ),
+    onError: error => toast.error(error.message),
+  });
+
+  const form = useForm({
+    defaultValues: { currentPassword: "", newPassword: "" },
+    validators: { onSubmit: changePasswordSchema },
+    onSubmit: async ({ value, formApi }) => {
+      const { error } = await authClient.changePassword({
+        currentPassword: value.currentPassword,
+        newPassword: value.newPassword,
+        revokeOtherSessions: true,
+      });
+      if (error) {
+        formApi.setErrorMap({
+          onSubmit: {
+            form: error.message ?? "Could not change your password.",
+            fields: {},
+          },
+        });
+        return;
+      }
+      form.reset();
+      toast.success("Password updated. Your other sessions were signed out.");
+    },
+  });
+
+  if (hasPassword !== true) {
+    return (
+      <div className="space-y-2">
+        <FieldDescription>
+          {hasPassword === false
+            ? "This account has no password. We can email you a link to set one."
+            : "We could not load your linked accounts. You can still email a link to set or reset your password."}
+        </FieldDescription>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={requestReset.isPending}
+          onClick={() => requestReset.mutate()}
+        >
+          {requestReset.isPending ? "Sending..." : "Email me a set-password link"}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={event => {
+        event.preventDefault();
+        void form.handleSubmit();
+      }}
+    >
+      <div className="space-y-4">
+        <form.Field name="currentPassword">
+          {field => (
+            <Field>
+              <FieldLabel htmlFor="current-password">Current password</FieldLabel>
+              <PasswordInput
+                id="current-password"
+                autoComplete="current-password"
+                value={field.state.value}
+                onChange={event => field.handleChange(event.target.value)}
+                onBlur={field.handleBlur}
+                aria-invalid={field.state.meta.errors.length > 0}
+              />
+              <FieldError errors={field.state.meta.errors} />
+            </Field>
+          )}
+        </form.Field>
+
+        <form.Field name="newPassword">
+          {field => (
+            <Field>
+              <FieldLabel htmlFor="new-password">New password</FieldLabel>
+              <PasswordInput
+                id="new-password"
+                autoComplete="new-password"
+                value={field.state.value}
+                onChange={event => field.handleChange(event.target.value)}
+                onBlur={field.handleBlur}
+                aria-invalid={field.state.meta.errors.length > 0}
+              />
+              <FieldError errors={field.state.meta.errors} />
+              <FieldDescription>
+                At least 8 characters, including a number and a symbol.
+              </FieldDescription>
+            </Field>
+          )}
+        </form.Field>
+
+        <form.Subscribe selector={state => state.errorMap.onSubmit}>
+          {formError => <FormError error={formError} />}
+        </form.Subscribe>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <form.Subscribe selector={state => state.isSubmitting}>
+            {isSubmitting => (
+              <Button type="submit" size="sm" disabled={isSubmitting}>
+                {isSubmitting ? "Updating..." : "Update password"}
+              </Button>
+            )}
+          </form.Subscribe>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={requestReset.isPending}
+            onClick={() => requestReset.mutate()}
+          >
+            {requestReset.isPending ? "Sending..." : "Email me a reset link"}
+          </Button>
+        </div>
+
+        <FieldDescription>
+          Do not know your current password? Send yourself a reset link instead. Updating your
+          password here signs out your other sessions; resetting it from the emailed link signs you
+          out everywhere.
+        </FieldDescription>
+      </div>
+    </form>
+  );
+}
+
 /**
  * Route-level pending view (`/settings` prefetches the linked accounts): the same sections and
  * row shapes as skeletons, so the swap to real data does not shift the layout.
@@ -175,11 +403,18 @@ export function SettingsPageSkeleton() {
         <SettingsSection title="Profile">
           <RowSkeleton />
           <RowSkeleton />
+          <RowSkeleton />
         </SettingsSection>
 
         <SettingsSection title="Linked providers">
           <IconRowSkeleton />
           <IconRowSkeleton />
+        </SettingsSection>
+
+        <SettingsSection title="Password">
+          <Skeleton className="h-9 w-full" />
+          <Skeleton className="h-9 w-full" />
+          <Skeleton className="h-8 w-32" />
         </SettingsSection>
 
         <SettingsSection title="Passkeys">

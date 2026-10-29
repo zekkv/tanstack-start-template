@@ -3,25 +3,18 @@ import { createMiddleware, createServerFn } from "@tanstack/react-start";
 export interface SessionUser {
   id: string;
   email: string;
+  emailVerified: boolean;
   name?: string | null;
   image?: string | null;
 }
 
-export function getSessionUser(
-  session: {
-    user?: { id: string; email: string; name?: string | null; image?: string | null };
-  } | null
-): SessionUser | null {
+export function getSessionUser(session: { user?: SessionUser } | null): SessionUser | null {
   if (!session?.user) {
     return null;
   }
 
-  return {
-    id: session.user.id,
-    email: session.user.email,
-    name: session.user.name,
-    image: session.user.image,
-  };
+  const { id, email, emailVerified, name, image } = session.user;
+  return { id, email, emailVerified, name, image };
 }
 
 function loadAuthServer() {

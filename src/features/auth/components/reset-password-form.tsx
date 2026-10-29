@@ -1,6 +1,7 @@
 import { Button } from "#/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
+import { PasswordInput } from "#/features/auth/components/password-input";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form-start";
 import { z } from "zod";
@@ -154,9 +155,8 @@ function SetNewPassword({ token }: { token: string }) {
           {field => (
             <Field>
               <FieldLabel htmlFor="password">New password</FieldLabel>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 autoComplete="new-password"
                 value={field.state.value}
                 onChange={e => field.handleChange(e.target.value)}
