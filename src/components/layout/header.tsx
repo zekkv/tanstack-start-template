@@ -1,5 +1,6 @@
 import { Link, useNavigate, useRouteContext, useRouter } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
+import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 
 import { authClient } from "#/lib/auth-client";
@@ -75,11 +76,13 @@ export function Header() {
             <Button
               type="button"
               variant="ghost"
-              size="sm"
+              size="icon-sm"
               disabled={signOut.isPending}
+              aria-label="Sign out"
+              title="Sign out"
               onClick={() => signOut.mutate()}
             >
-              Sign out
+              <LogOut className="size-3.5" />
             </Button>
           )}
           <ThemeToggle />
