@@ -8,7 +8,7 @@ import { Button } from "#/components/ui/button";
 const emptySubscribe = () => () => {};
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const mounted = React.useSyncExternalStore(
     emptySubscribe,
     () => true,
@@ -16,35 +16,23 @@ export function ThemeToggle() {
   );
 
   if (!mounted) {
-    return <div aria-hidden="true" className="h-8 w-[68px]" />;
+    return <div aria-hidden="true" className="size-8" />;
   }
 
-  const themes = [
-    { id: "light", icon: Sun, label: "Light" },
-    { id: "dark", icon: Moon, label: "Dark" },
-  ] as const;
+  const isDark = resolvedTheme === "dark";
+  const nextTheme = isDark ? "light" : "dark";
+  const Icon = isDark ? Sun : Moon;
 
   return (
-    <div className="flex items-center gap-1">
-      {themes.map(t => {
-        const Icon = t.icon;
-        const isActive = theme === t.id;
-
-        return (
-          <Button
-            key={t.id}
-            type="button"
-            variant={isActive ? "default" : "ghost"}
-            size="icon-sm"
-            onClick={() => setTheme(t.id)}
-            aria-label={`${t.label} theme`}
-            aria-pressed={isActive}
-            title={t.label}
-          >
-            <Icon className="size-3.5" />
-          </Button>
-        );
-      })}
-    </div>
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-sm"
+      onClick={() => setTheme(nextTheme)}
+      aria-label={`Switch to ${nextTheme} theme`}
+      title={`Switch to ${nextTheme} theme`}
+    >
+      <Icon className="size-3.5" />
+    </Button>
   );
 }
