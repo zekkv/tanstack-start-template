@@ -8,6 +8,13 @@
       "when": 1788856810557,
       "tag": "0000_brief_justice",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793287025765,
+      "tag": "0001_fair_richard_fisk",
+      "breakpoints": true
     }
   ]
 }
